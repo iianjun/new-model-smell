@@ -1,0 +1,3 @@
+# Render low-poly 3D as pixel art
+
+Motor Town, its vehicles, and physical effects will be built as low-poly three-dimensional objects but rendered with a deliberately pixelated, color-controlled presentation. The style will resemble a bright, stable late-1990s arcade or N64-era world rather than using PS1-style geometry jitter or dark neon cyberpunk. This preserves free driving, physics, dynamic lighting, and object interaction while creating a playful identity distinct from a smooth low-poly portfolio. Model Dossiers remain crisp two-dimensional interfaces so benchmarks and articles stay readable.
