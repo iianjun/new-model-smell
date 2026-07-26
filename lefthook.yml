@@ -1,0 +1,10 @@
+pre-commit:
+  jobs:
+    - name: biome
+      glob: "*.{js,jsx,ts,tsx,json,jsonc,css}"
+      run: pnpm check:staged {staged_files}
+
+pre-push:
+  jobs:
+    - name: validate
+      run: pnpm validate

@@ -1,32 +1,27 @@
-# React + TypeScript + Vite
+# New Model Motors
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+An interactive React Three Fiber world that treats flagship AI model releases as
+luxury vehicle launches.
 
-Currently, two official plugins are available:
+## Development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The project requires the Node.js version in `.nvmrc` and uses pnpm.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+pnpm install
+pnpm dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+`pnpm install` also installs the repository's Lefthook pre-commit and pre-push
+hooks using the project-local executable.
+
+## Quality commands
+
+- `pnpm format` / `pnpm format:write` — check or write formatting
+- `pnpm lint` / `pnpm lint:fix` — check lint rules or apply safe fixes
+- `pnpm check` / `pnpm check:write` — run all Biome checks, including import
+  organization
+- `pnpm typecheck` — check TypeScript project references
+- `pnpm test:browser` — run the Playwright Chromium smoke tests
+- `pnpm validate` — run Biome, type checking, the production build, and browser
+  tests
