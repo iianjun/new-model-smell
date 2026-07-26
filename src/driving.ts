@@ -1,4 +1,9 @@
-export type DrivingState = "bounce" | "driving" | "handbrake" | "ready";
+export type DrivingState =
+  | "bounce"
+  | "driving"
+  | "handbrake"
+  | "ready"
+  | "recovery";
 
 export const COLLISION_SURFACE = {
   centralLandmark: "central-landmark",
@@ -12,8 +17,6 @@ export const INSPECTOR_CART_TUNING = {
 } as const;
 
 export type DrivingTelemetry = {
-  distanceMeters: number;
-  recoveryUsed: boolean;
   state: DrivingState;
 };
 
@@ -25,8 +28,6 @@ export type HeadingBasis = {
 };
 
 export const INITIAL_DRIVING_TELEMETRY: DrivingTelemetry = {
-  distanceMeters: 0,
-  recoveryUsed: false,
   state: "ready",
 };
 

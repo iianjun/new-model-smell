@@ -25,54 +25,31 @@ test("visitor drives the Inspector Cart through a collision and remains in contr
     page.getByRole("status", { name: "Loading New Model Motors" }),
   ).toBeHidden();
 
-  const odometer = page.getByTestId("inspection-odometer");
-  const recoveryAssist = page.getByTestId("recovery-assist");
+  const drivingState = page.getByTestId("driving-state");
 
-  await expect(odometer).toHaveText("000 m");
-  await expect(recoveryAssist).toContainText(/standing by/i);
+  await expect(drivingState).toContainText("Ready to inspect");
 
   await page.keyboard.down("w");
-  await expect
-    .poll(async () =>
-      Number.parseInt((await odometer.textContent()) ?? "0", 10),
-    )
-    .toBeGreaterThan(2);
-  await expect(page.getByTestId("driving-state")).toContainText(
-    "Bounced clear",
-    {
-      timeout: 8_000,
-    },
-  );
+  await expect(drivingState).toContainText("Cart in motion");
+  await expect(drivingState).toContainText("Bounced clear", { timeout: 8_000 });
   await page.keyboard.up("w");
   await page.waitForTimeout(1_100);
-  await expect(recoveryAssist).toContainText(/standing by/i);
+  await expect(drivingState).not.toContainText("Recovery complete");
 
   await page.keyboard.down("w");
-  await expect(recoveryAssist).toContainText("complete", { timeout: 8_000 });
+  await expect(drivingState).toContainText("Recovery complete", {
+    timeout: 8_000,
+  });
   await page.keyboard.up("w");
 
-  const distanceAfterRecovery = Number.parseInt(
-    (await odometer.textContent()) ?? "0",
-    10,
-  );
-
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(750);
   await page.keyboard.down("ArrowDown");
-  await expect(page.getByTestId("driving-state")).toContainText("motion");
-  await expect
-    .poll(
-      async () => Number.parseInt((await odometer.textContent()) ?? "0", 10),
-      {
-        timeout: 8_000,
-      },
-    )
-    .toBeGreaterThan(distanceAfterRecovery);
+  await expect(drivingState).toContainText("Cart in motion");
+  await expect(drivingState).toContainText("Bounced clear", { timeout: 8_000 });
   await page.keyboard.down("Space");
-  await expect(page.getByTestId("driving-state")).toContainText("handbrake");
+  await expect(drivingState).toContainText("handbrake");
   await page.keyboard.up("Space");
   await page.keyboard.up("ArrowDown");
   expect(await page.evaluate("window.scrollY")).toBe(0);
-  await expect(page.getByTestId("driving-state")).not.toContainText(
-    /damage|failed|game over/i,
-  );
+  await expect(drivingState).not.toContainText(/damage|failed|game over/i);
 });

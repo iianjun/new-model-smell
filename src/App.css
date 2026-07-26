@@ -181,16 +181,6 @@
   box-shadow: inset 0 0 0 2px #d7dfae;
 }
 
-.runtime-meta {
-  display: block;
-  margin-top: 0.3rem;
-  color: rgba(37, 39, 35, 0.64);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .driving-guide {
   position: absolute;
   bottom: clamp(1.25rem, 3vw, 2.5rem);

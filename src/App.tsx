@@ -32,6 +32,7 @@ function RuntimeInterface({ telemetry }: { telemetry: DrivingTelemetry }) {
     driving: "Cart in motion",
     handbrake: "Short handbrake",
     ready: "Ready to inspect",
+    recovery: "Recovery complete",
   }[telemetry.state];
 
   return (
@@ -52,15 +53,6 @@ function RuntimeInterface({ telemetry }: { telemetry: DrivingTelemetry }) {
         <div>
           <p>Inspector Cart</p>
           <strong>{drivingLabel}</strong>
-          <small className="runtime-meta">
-            <span data-testid="inspection-odometer">
-              {String(telemetry.distanceMeters).padStart(3, "0")} m
-            </span>
-            <span aria-hidden="true"> · </span>
-            <span data-testid="recovery-assist">
-              Recovery {telemetry.recoveryUsed ? "complete" : "standing by"}
-            </span>
-          </small>
         </div>
       </aside>
 

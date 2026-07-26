@@ -44,10 +44,8 @@ export function InspectorCart({ onTelemetry }: InspectorCartProps) {
   const lastCollisionAt = useRef(0);
   const activeCollisionContacts = useRef(0);
   const bounceUntil = useRef(0);
+  const recoveryUntil = useRef(0);
   const recoveryArmed = useRef(true);
-  const recoveryUsed = useRef(false);
-  const distance = useRef(0);
-  const previousPosition = useRef(START_POSITION);
   const safePosition = useRef(START_POSITION);
   const lastTelemetryAt = useRef(0);
   const lastTelemetry = useRef<DrivingTelemetry | null>(null);
@@ -126,21 +124,6 @@ export function InspectorCart({ onTelemetry }: InspectorCartProps) {
 
     speed.current = forwardSpeed;
 
-    const moved = Math.hypot(
-      position.x - previousPosition.current.x,
-      position.z - previousPosition.current.z,
-    );
-
-    if (moved < 0.75) {
-      distance.current += moved;
-    }
-
-    previousPosition.current = {
-      x: position.x,
-      y: position.y,
-      z: position.z,
-    };
-
     const collisionPressureExpired =
       activeCollisionContacts.current === 0 &&
       lastCollisionAt.current > 0 &&
@@ -196,13 +179,12 @@ export function InspectorCart({ onTelemetry }: InspectorCartProps) {
       rigidBody.setRotation(quaternionFromYaw(yaw.current), true);
       rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
       rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
-      previousPosition.current = recoveryPosition;
       collisionPressureStartedAt.current = 0;
       lastCollisionAt.current = 0;
       activeCollisionContacts.current = 0;
       bounceUntil.current = now + 180;
+      recoveryUntil.current = now + 720;
       recoveryArmed.current = false;
-      recoveryUsed.current = true;
     }
 
     if (controls.throttle === 0 && activeCollisionContacts.current === 0) {
@@ -210,22 +192,19 @@ export function InspectorCart({ onTelemetry }: InspectorCartProps) {
     }
 
     const telemetry: DrivingTelemetry = {
-      distanceMeters: Math.floor(distance.current),
-      recoveryUsed: recoveryUsed.current,
       state: controls.handbrake
         ? "handbrake"
-        : now < bounceUntil.current
-          ? "bounce"
-          : Math.abs(forwardSpeed) > 0.18 || controls.throttle !== 0
-            ? "driving"
-            : "ready",
+        : now < recoveryUntil.current
+          ? "recovery"
+          : now < bounceUntil.current
+            ? "bounce"
+            : Math.abs(forwardSpeed) > 0.18 || controls.throttle !== 0
+              ? "driving"
+              : "ready",
     };
     const previousTelemetry = lastTelemetry.current;
     const telemetryChanged =
-      !previousTelemetry ||
-      previousTelemetry.distanceMeters !== telemetry.distanceMeters ||
-      previousTelemetry.recoveryUsed !== telemetry.recoveryUsed ||
-      previousTelemetry.state !== telemetry.state;
+      !previousTelemetry || previousTelemetry.state !== telemetry.state;
 
     if (telemetryChanged && now - lastTelemetryAt.current >= 80) {
       lastTelemetry.current = telemetry;
