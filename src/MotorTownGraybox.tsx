@@ -3,6 +3,7 @@ import {
   CylinderCollider,
   RigidBody,
 } from "@react-three/rapier";
+import { COLLISION_SURFACE } from "./driving";
 
 type GroundPoint = readonly [x: number, z: number];
 
@@ -66,7 +67,7 @@ function BoundaryWall({ length, position, rotation = 0 }: BoundaryWallProps) {
   return (
     <RigidBody
       colliders={false}
-      name="drive-boundary"
+      name={COLLISION_SURFACE.townBoundary}
       position={position}
       rotation={[0, rotation, 0]}
       type="fixed"
@@ -93,7 +94,7 @@ function BlockedRoadBarrier({ position, rotation = 0 }: BarrierProps) {
   return (
     <RigidBody
       colliders={false}
-      name="drive-boundary"
+      name={COLLISION_SURFACE.townBoundary}
       position={position}
       rotation={[0, rotation, 0]}
       type="fixed"
@@ -176,7 +177,7 @@ function CentralLandmarkPlot() {
   return (
     <RigidBody
       colliders={false}
-      name="central-landmark"
+      name={COLLISION_SURFACE.centralLandmark}
       position={[0, 0, 0.1]}
       type="fixed"
     >
@@ -190,28 +191,42 @@ function CentralLandmarkPlot() {
           <cylinderGeometry args={[1.8, 2.15, 0.38, 12]} />
           <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
         </mesh>
-        <mesh castShadow position={[0, 1.2, 0]}>
-          <cylinderGeometry args={[0.54, 0.72, 1.25, 8]} />
-          <meshStandardMaterial
-            color={SAFETY_ORANGE}
-            flatShading
-            roughness={1}
-          />
-        </mesh>
-        <mesh castShadow position={[0, 2.15, 0]} rotation={[0, 0, -0.2]}>
-          <boxGeometry args={[0.85, 1.2, 0.62]} />
+        <mesh castShadow position={[0, 1.52, 0]}>
+          <cylinderGeometry args={[0.46, 0.68, 1.75, 7]} />
           <meshStandardMaterial color={WARM_IVORY} flatShading roughness={1} />
         </mesh>
-        <mesh castShadow position={[0.36, 2.16, 0.03]}>
-          <sphereGeometry args={[0.19, 8, 6]} />
+        <mesh
+          castShadow
+          position={[0, 2.1, 0.32]}
+          rotation={[-0.2, 0, 0]}
+          scale={[0.78, 1.28, 0.9]}
+        >
+          <dodecahedronGeometry args={[0.72, 0]} />
           <meshStandardMaterial
             color={SAFETY_ORANGE}
-            emissive={SAFETY_ORANGE}
-            emissiveIntensity={0.2}
             flatShading
             roughness={1}
           />
         </mesh>
+        <mesh castShadow position={[0, 1.63, 0.78]} scale={[1.1, 0.68, 0.9]}>
+          <dodecahedronGeometry args={[0.6, 0]} />
+          <meshStandardMaterial
+            color={SAFETY_ORANGE}
+            flatShading
+            roughness={1}
+          />
+        </mesh>
+        {[-0.29, 0.29].map((x) => (
+          <mesh
+            key={x}
+            position={[x, 1.52, 1.25]}
+            rotation={[Math.PI / 2, 0, 0]}
+            scale={[1, 0.42, 1]}
+          >
+            <cylinderGeometry args={[0.17, 0.2, 0.08, 8]} />
+            <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
+          </mesh>
+        ))}
       </group>
     </RigidBody>
   );

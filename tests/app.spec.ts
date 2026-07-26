@@ -37,7 +37,18 @@ test("visitor drives the Inspector Cart through a collision and remains in contr
       Number.parseInt((await odometer.textContent()) ?? "0", 10),
     )
     .toBeGreaterThan(2);
-  await expect(recoveryAssist).toContainText("recovered", { timeout: 8_000 });
+  await expect(page.getByTestId("driving-state")).toContainText(
+    "Bounced clear",
+    {
+      timeout: 8_000,
+    },
+  );
+  await page.keyboard.up("w");
+  await page.waitForTimeout(1_100);
+  await expect(recoveryAssist).toContainText(/standing by/i);
+
+  await page.keyboard.down("w");
+  await expect(recoveryAssist).toContainText("complete", { timeout: 8_000 });
   await page.keyboard.up("w");
 
   const distanceAfterRecovery = Number.parseInt(

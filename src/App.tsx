@@ -28,6 +28,7 @@ function LoadingSurface() {
 
 function RuntimeInterface({ telemetry }: { telemetry: DrivingTelemetry }) {
   const drivingLabel = {
+    bounce: "Bounced clear",
     driving: "Cart in motion",
     handbrake: "Short handbrake",
     ready: "Ready to inspect",
@@ -51,6 +52,15 @@ function RuntimeInterface({ telemetry }: { telemetry: DrivingTelemetry }) {
         <div>
           <p>Inspector Cart</p>
           <strong>{drivingLabel}</strong>
+          <small className="runtime-meta">
+            <span data-testid="inspection-odometer">
+              {String(telemetry.distanceMeters).padStart(3, "0")} m
+            </span>
+            <span aria-hidden="true"> · </span>
+            <span data-testid="recovery-assist">
+              Recovery {telemetry.recoveryUsed ? "complete" : "standing by"}
+            </span>
+          </small>
         </div>
       </aside>
 
@@ -58,17 +68,6 @@ function RuntimeInterface({ telemetry }: { telemetry: DrivingTelemetry }) {
         <p>Drive</p>
         <strong>WASD · Arrows</strong>
         <span>Short handbrake · Space</span>
-      </aside>
-
-      <aside className="inspection-readout" aria-label="Inspection readout">
-        <p>Inspection odometer</p>
-        <strong data-testid="inspection-odometer">
-          {String(telemetry.distanceMeters).padStart(3, "0")} m
-        </strong>
-        <span data-testid="recovery-assist">
-          Recovery assist ·{" "}
-          {telemetry.recoveryUsed ? "Cart recovered" : "Standing by"}
-        </span>
       </aside>
 
       <p className="runtime-caption">
