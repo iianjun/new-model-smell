@@ -153,7 +153,7 @@ The complete experience uses forgiving arcade physics, one consistent high three
 - Add visual-regression checkpoints for the Motor Town reveal, cutaway Showroom, active Valet Transfer, Dyno escalation, physical-to-2D sheet transition, and final Model Dossier. Use tolerant image comparison appropriate for WebGL output and treat material, palette, camera framing, and destination legibility as the assertions.
 - Validate the curated domain fixture at its loading boundary. Reject missing source provenance, invalid Public Availability Dates, incomplete Benchmark Records, and rival comparisons whose source, version, or conditions do not match.
 - Perform a manual desktop exploratory pass for driving feel, camera comfort, pointer-drag tolerance, sound synchronization, building occlusion, and stable performance. These qualities are user-visible but should not be reduced to brittle implementation assertions.
-- The repository currently has no test framework or relevant prior test suite. Establish the browser-level harness around the completed user journey rather than introducing many lower-level test seams. Any small pure validation tests should support the same data-loading boundary and not mirror internal implementation.
+- Playwright owns the browser-level harness around the completed user journey; do not introduce lower-level seams that mirror internal implementation. Small pure validation tests belong at the same data-loading boundary.
 
 ## Out of Scope
 
