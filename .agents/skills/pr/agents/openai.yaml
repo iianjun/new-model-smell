@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR"
+  short_description: "Create a concise pull request from repository changes"
+  default_prompt: "Use $pr to prepare and open a pull request for my current branch."
