@@ -58,7 +58,7 @@ Build from primitives or substantially customize:
 
 ## Art bar
 
-Use low-poly geometry, a small shared material palette, flat or tightly controlled lighting, and stable late-1990s arcade-style pixelation. The Model Dossier remains crisp 2D. Visual polish is subordinate to proving controls, camera behavior, collision readability, vehicle transfer, Drive-Out, Dyno activation, and state restoration.
+Use cleanly rendered low-poly geometry, a small shared material palette, flat or tightly controlled lighting, and a late-1990s arcade-inspired pixel-art vocabulary. Keep the default raster output high-density and antialiased rather than deliberately jagged. The Model Dossier remains crisp 2D. Visual polish is subordinate to proving controls, camera behavior, collision readability, vehicle transfer, Drive-Out, Dyno activation, and state restoration.
 
 ### Model Vehicle
 

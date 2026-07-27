@@ -16,7 +16,7 @@ The slice begins with a short real-time reveal of a compact triangular portion o
 
 The visitor can then drive the Active Flagship to the Dyno Lab, align it on the rollers, and hold the normal accelerator to run an exaggerated physical test. The Dyno prints a paper Dyno Sheet. Pulling the sheet with the pointer transforms it into a crisp, readable Model Dossier containing manually curated Benchmark Records. Closing the dossier returns the visitor to the same vehicle and location.
 
-The complete experience uses forgiving arcade physics, one consistent high three-quarter chase camera, low-poly objects rendered with stable late-1990s arcade-style pixelation, and a bright painted inspection-town palette. Generic prototype assets come from a coherent CC0 kit family; identity-bearing objects remain primitives or custom work until the interaction loop has proven successful.
+The complete experience uses forgiving arcade physics, one consistent high three-quarter chase camera, cleanly rendered low-poly objects with a late-1990s arcade-inspired pixel-art vocabulary, and a bright painted inspection-town palette. Generic prototype assets come from a coherent CC0 kit family; identity-bearing objects remain primitives or custom work until the interaction loop has proven successful.
 
 ## User Stories
 
@@ -80,7 +80,7 @@ The complete experience uses forgiving arcade physics, one consistent high three
 58. As a visitor, I want to close the Model Dossier and see the paper retract into the Dyno, so that the information layer reconnects to the physical world.
 59. As a visitor, I want closing the dossier to return me to the same Active Flagship and location, so that inspecting data does not reset my journey.
 60. As a visitor, I want to drive away after reading the dossier, so that the completed information interaction returns naturally to exploration.
-61. As a visitor, I want low-poly geometry rendered with stable pixelation, so that the world evokes a bright late-1990s arcade rather than smooth portfolio 3D.
+61. As a visitor, I want cleanly rendered low-poly geometry with a pixel-art visual vocabulary, so that the world evokes a bright late-1990s arcade without low-resolution jaggedness.
 62. As a visitor, I want stable geometry without PS1-style jitter, so that driving and reading the environment remain comfortable.
 63. As a visitor, I want a bright daytime world with warm ivory buildings, charcoal roads, safety-orange interaction accents, faded green landscaping, and a pale blue sky, so that destinations remain legible.
 64. As a visitor, I want machinery made from painted metal, enamel panels, dark rubber, and non-reflective hardware rather than decorative chrome, so that the visual identity stays tactile and playful.
@@ -128,9 +128,9 @@ The complete experience uses forgiving arcade physics, one consistent high three
 - Reuse the normal accelerator input during the clamped Dyno run. The run controls only presentation progress; it never computes, increases, or decreases curated Benchmark Record values.
 - Coordinate Dyno wheel motion, rollers, cooling fans, gauges, sound, vibration, and printed paper from one run-progress signal so their escalation remains synchronized.
 - Make the printed Dyno Sheet a pointer target with generous hit area and drag tolerance. Pull distance controls the physical unfolding transition; reaching its completion threshold opens the Model Dossier.
-- Keep the Model Dossier as crisp DOM-based 2D content above the pixelated world. While open, pause vehicle control and preserve the controlled vehicle transform, velocity policy, Active Flagship, Dyno state, and camera context.
+- Keep the Model Dossier as crisp DOM-based 2D content above the cleanly rendered low-poly world. While open, pause vehicle control and preserve the controlled vehicle transform, velocity policy, Active Flagship, Dyno state, and camera context.
 - On dossier close, animate the paper back into the Dyno and resume the preserved Active Flagship at the same location. Do not reload the scene, respawn at the Dealership, or return to the Inspector Cart.
-- Render low-poly 3D through a stable pixelation treatment. Use a deliberately reduced presentation resolution or pixel-rendering pass with hard-edged scaling, while keeping DOM text and interaction affordances at native display resolution.
+- Render low-poly 3D at a clean, high-density presentation resolution with antialiased edges. Express the pixel-art direction through simplified geometry, controlled color, matte materials, and restrained detail rather than deliberately reduced resolution or hard-edged image scaling. Keep DOM text and interaction affordances at native display resolution.
 - Do not use geometry jitter, unstable vertex snapping, dark neon cyberpunk styling, or decorative chrome. Use the approved warm ivory, charcoal, safety orange, faded green, and pale blue palette with matte painted metal, enamel, rubber, and restrained non-reflective hardware.
 - Use The Nose as a data-driven landmark. Its orientation is derived from the newest Flagship Launch available to the slice, while `NEW MODEL SMELL REMAINING` remains a comic presentation of Release Age and must not imply model performance or quality.
 - Build the first playable slice from primitives and a coherent CC0 asset family, using Kenney as the primary source for generic roads, buildings, street furniture, temporary vehicles, and sounds. Use additional sources only to fill a specific gap after normalizing scale, palette, and materials.
@@ -176,7 +176,7 @@ The complete experience uses forgiving arcade physics, one consistent high three
 
 - The [domain glossary](../../CONTEXT.md) is normative. Implementation and interface copy should use terms such as Release Age, Public Availability Date, Flagship Lineup, Inspector Cart, Drive-Out, Active Flagship, Dyno Sheet, and Model Dossier rather than the avoided alternatives.
 - The [first vertical slice design](../design/first-vertical-slice.md) captures the agreed spatial and interaction details.
-- The repository ADRs are binding design constraints for this issue, particularly the decisions covering New Model Motors, flagship inclusion, Public Availability Date, the high chase camera, comparable benchmarks, pixel rendering, asset strategy, cutaway Showrooms, Valet Transfer, Dyno operation, The Nose, palette, vehicle silhouettes, arcade physics, and desktop scope.
+- The repository ADRs are binding design constraints for this issue, particularly the decisions covering New Model Motors, flagship inclusion, Public Availability Date, the high chase camera, comparable benchmarks, clean low-poly rendering, asset strategy, cutaway Showrooms, Valet Transfer, Dyno operation, The Nose, palette, vehicle silhouettes, arcade physics, and desktop scope.
 - The [3D asset pipeline research](../research/3d-asset-pipeline.md) identifies official CC0 and paid sources, Blender-to-GLB workflow, optimization concerns, and provenance requirements.
 - The existing palette concept is a density and color study only. Its chrome-like highlights are rejected; The Nose must read as a literal painted enamel nose, and production buildings should be simpler than the concept image.
 - React Three Fiber is the agreed integration layer for Three.js. It does not replace the Three.js engine; it expresses the Three.js scene graph and frame lifecycle through React.
