@@ -7,6 +7,10 @@ import {
   type Object3D,
 } from "three";
 import { INSPECTOR_CART_TUNING } from "./driving";
+import {
+  INSPECTOR_CART_WHEEL_CENTER_Y,
+  INSPECTOR_CART_WHEEL_RADIUS,
+} from "./inspectorCartGeometry";
 import type { DrivingInput } from "./useDrivingInput";
 
 type InspectorCartModelProps = {
@@ -93,10 +97,17 @@ export function InspectorCartModel({
           <mesh
             castShadow
             key={`${x}-${z}`}
-            position={[x, -0.27, z]}
+            position={[x, INSPECTOR_CART_WHEEL_CENTER_Y, z]}
             rotation={[0, 0, Math.PI / 2]}
           >
-            <cylinderGeometry args={[0.3, 0.3, 0.24, 8]} />
+            <cylinderGeometry
+              args={[
+                INSPECTOR_CART_WHEEL_RADIUS,
+                INSPECTOR_CART_WHEEL_RADIUS,
+                0.24,
+                8,
+              ]}
+            />
             <meshStandardMaterial color="#252723" flatShading roughness={1} />
           </mesh>
         )),
