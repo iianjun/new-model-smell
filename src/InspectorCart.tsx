@@ -21,6 +21,9 @@ const COLLISION_GRACE_MS = 650;
 const TRAPPED_SPEED = 0.85;
 
 type InspectorCartProps = {
+  awake: boolean;
+  cameraEnabled: boolean;
+  controlsEnabled: boolean;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
 };
 
@@ -35,11 +38,16 @@ function quaternionFromYaw(yaw: number) {
   };
 }
 
-export function InspectorCart({ onTelemetry }: InspectorCartProps) {
+export function InspectorCart({
+  awake,
+  cameraEnabled,
+  controlsEnabled,
+  onTelemetry,
+}: InspectorCartProps) {
   const body = useRef<RapierRigidBody>(null);
   const speed = useRef(0);
   const yaw = useRef(0);
-  const input = useDrivingInput();
+  const input = useDrivingInput(controlsEnabled);
   const collisionPressureStartedAt = useRef(0);
   const lastCollisionAt = useRef(0);
   const activeCollisionContacts = useRef(0);
@@ -276,9 +284,9 @@ export function InspectorCart({ onTelemetry }: InspectorCartProps) {
           position={[0, 0.18, 0]}
           restitution={0.92}
         />
-        <InspectorCartModel input={input} speed={speed} />
+        <InspectorCartModel awake={awake} input={input} speed={speed} />
       </RigidBody>
-      <ChaseCamera body={body} yaw={yaw} />
+      <ChaseCamera active={cameraEnabled} body={body} yaw={yaw} />
     </>
   );
 }

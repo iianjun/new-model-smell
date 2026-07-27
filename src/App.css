@@ -195,6 +195,7 @@
   left: clamp(1.25rem, 3vw, 2.5rem);
   display: grid;
   min-width: 12rem;
+  animation: handoff-guide-in 0.45s ease-out both;
 }
 
 .driving-guide p {
@@ -238,6 +239,96 @@
   color: #f2e7d2;
 }
 
+.opening-stage,
+.opening-skip,
+.opening-announcement p {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.opening-stage {
+  position: absolute;
+  bottom: clamp(3.7rem, 7vw, 5.5rem);
+  left: 50%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgba(37, 39, 35, 0.48);
+  transform: translateX(-50%);
+  background: rgba(242, 231, 210, 0.88);
+  box-shadow: 0.2rem 0.2rem 0 rgba(37, 39, 35, 0.16);
+  white-space: nowrap;
+}
+
+.opening-skip {
+  position: absolute;
+  bottom: clamp(1.25rem, 3vw, 2.5rem);
+  left: 50%;
+  color: rgba(37, 39, 35, 0.72);
+  transform: translateX(-50%);
+}
+
+.opening-announcement {
+  position: absolute;
+  top: 24%;
+  left: 50%;
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  min-width: min(28rem, calc(100vw - 2.5rem));
+  padding: 0.9rem 1.05rem;
+  border: 2px solid #252723;
+  transform: translateX(-50%);
+  background: #f2e7d2;
+  box-shadow: 0.45rem 0.45rem 0 rgba(37, 39, 35, 0.24);
+}
+
+.opening-announcement p {
+  color: rgba(37, 39, 35, 0.62);
+  letter-spacing: 0.11em;
+}
+
+.opening-announcement strong {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: clamp(1rem, 2vw, 1.45rem);
+  letter-spacing: 0.045em;
+  line-height: 1;
+}
+
+.freshness-event span {
+  width: 1rem;
+  height: 2.65rem;
+  flex: 0 0 auto;
+  border: 2px solid #252723;
+  background: #ef6d32;
+  box-shadow: inset 0 0 0 0.18rem #f5c85e;
+}
+
+.calm-reveal {
+  top: auto;
+  bottom: 20%;
+  justify-content: center;
+  border-width: 1px;
+  text-align: center;
+  box-shadow: 0.3rem 0.3rem 0 rgba(37, 39, 35, 0.16);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 @keyframes inspect {
   from {
     transform: translateX(-100%);
@@ -245,6 +336,18 @@
 
   to {
     transform: translateX(240%);
+  }
+}
+
+@keyframes handoff-guide-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -262,6 +365,12 @@
 
   .driving-guide {
     display: none;
+  }
+
+  .opening-stage {
+    max-width: calc(100vw - 2.5rem);
+    text-align: center;
+    white-space: normal;
   }
 }
 
