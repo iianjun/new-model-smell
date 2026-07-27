@@ -14,6 +14,10 @@ import {
   isCartCollisionSurface,
 } from "./driving";
 import { InspectorCartModel } from "./InspectorCartModel";
+import {
+  INSPECTOR_CART_COLLIDER_CENTER_Y,
+  INSPECTOR_CART_COLLIDER_HALF_HEIGHT,
+} from "./inspectorCartGeometry";
 import { useDrivingInput } from "./useDrivingInput";
 
 const START_POSITION = { x: 0, y: 0.72, z: 7.2 };
@@ -279,9 +283,9 @@ export function InspectorCart({
         restitution={0.92}
       >
         <CuboidCollider
-          args={[0.68, 0.5, 0.94]}
+          args={[0.68, INSPECTOR_CART_COLLIDER_HALF_HEIGHT, 0.94]}
           friction={0.2}
-          position={[0, 0.18, 0]}
+          position={[0, INSPECTOR_CART_COLLIDER_CENTER_Y, 0]}
           restitution={0.92}
         />
         <InspectorCartModel awake={awake} input={input} speed={speed} />
