@@ -37,8 +37,12 @@ function RoadSegment({ end, start, width = 4.1 }: RoadSegmentProps) {
 
   return (
     <group position={[midpointX, 0, midpointZ]} rotation={[0, rotation, 0]}>
-      <mesh receiveShadow position={[0, 0.03, 0]}>
-        <boxGeometry args={[width - ROAD_SURFACE_WIDTH_INSET, 0.12, length]} />
+      <mesh
+        receiveShadow
+        position={[0, 0.09, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <planeGeometry args={[width - ROAD_SURFACE_WIDTH_INSET, length]} />
         <meshStandardMaterial color={ASPHALT} flatShading roughness={1} />
       </mesh>
       <mesh position={[0, 0.101, 0]}>
