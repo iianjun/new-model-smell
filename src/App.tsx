@@ -20,8 +20,9 @@ import {
 import {
   type FlagshipModel,
   getInitialCartPosition,
-  getOpenAiFlagshipLineup,
+  getTrackedCompanies,
   isInOpenAiShowroomRevealZone,
+  type TrackedCompany,
   type WorldPosition,
 } from "./flagshipLineup";
 import {
@@ -121,7 +122,7 @@ function RuntimeInterface({
   return (
     <div className="runtime-interface">
       <header className="title-lockup">
-        <p>Motor Town · Runtime 05</p>
+        <p>Motor Town · Runtime 06</p>
         <h1>New Model Motors</h1>
       </header>
 
@@ -190,8 +191,8 @@ function RuntimeInterface({
       )}
 
       <p className="runtime-caption">
-        Live Valet Transfer
-        <span>05</span>
+        Live Model Freshness
+        <span>06</span>
       </p>
     </div>
   );
@@ -204,9 +205,17 @@ function getOpeningEntry(): OpeningEntry {
 }
 
 function App() {
-  const [openAiFlagshipLineup] = useState<readonly FlagshipModel[]>(
-    getOpenAiFlagshipLineup,
-  );
+  const [trackedCompanies] =
+    useState<readonly TrackedCompany[]>(getTrackedCompanies);
+  const openAiFlagshipLineup = useMemo(() => {
+    const openAi = trackedCompanies.find((company) => company.id === "openai");
+
+    if (!openAi) {
+      throw new Error("OpenAI must be present in the loaded Tracked Companies");
+    }
+
+    return openAi.flagshipLineup;
+  }, [trackedCompanies]);
   const [initialCartPosition] = useState<WorldPosition>(() =>
     getInitialCartPosition(openAiFlagshipLineup),
   );
@@ -310,6 +319,7 @@ function App() {
             openingEntry={openingEntry}
             openingStage={openingStage}
             skipRequested={skipRequested}
+            trackedCompanies={trackedCompanies}
           />
         </Suspense>
       </div>

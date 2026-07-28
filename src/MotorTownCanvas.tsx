@@ -9,7 +9,11 @@ import {
   type TransferPhase,
   type ValetTransferController,
 } from "./experience";
-import type { FlagshipModel, WorldPosition } from "./flagshipLineup";
+import type {
+  FlagshipModel,
+  TrackedCompany,
+  WorldPosition,
+} from "./flagshipLineup";
 import { InspectorCart } from "./InspectorCart";
 import { LIGHT_SIGNATURES } from "./ModelVehicleModel";
 import { MotorTownGraybox } from "./MotorTownGraybox";
@@ -38,6 +42,7 @@ type MotorTownCanvasProps = {
   openingEntry: OpeningEntry;
   openingStage: OpeningStage;
   skipRequested: boolean;
+  trackedCompanies: readonly TrackedCompany[];
 };
 
 function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
@@ -67,6 +72,7 @@ function MotorTownWorld({
   openingEntry,
   openingStage,
   skipRequested,
+  trackedCompanies,
 }: MotorTownCanvasProps) {
   const inspectorCartBody = useRef<RapierRigidBody>(null);
   const activeFlagshipBody = useRef<RapierRigidBody>(null);
@@ -150,6 +156,10 @@ function MotorTownWorld({
             onComplete={onOpeningComplete}
             onStage={onOpeningStage}
             skipRequested={skipRequested}
+            trackedCompanies={trackedCompanies}
+            trackedVehicleBody={
+              flagshipControlsEnabled ? activeFlagshipBody : inspectorCartBody
+            }
           />
           <RoadGuidance visible={inspectorControlsEnabled} />
           <RuntimeReady onReady={onReady} />

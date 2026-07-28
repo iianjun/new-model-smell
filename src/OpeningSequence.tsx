@@ -1,13 +1,26 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import type { RapierRigidBody } from "@react-three/rapier";
+import { useEffect, useMemo, useRef } from "react";
 import { type Group, MathUtils, Vector3 } from "three";
+import type { TrackedCompany } from "./flagshipLineup";
+import { LiveNoseController } from "./LiveNoseController";
+import { getNewestFlagshipLaunchFreshness } from "./modelFreshness";
+import {
+  animateNoseInhaleParticles,
+  NOSE_GAUGE_LABEL,
+  NoseLandmark,
+  useNoseLandmarkHandles,
+} from "./NoseLandmark";
 import {
   getNoseSneezeTransform,
-  NOSE_REST_POSITION_Y,
   NOSE_SNEEZE_MOTION_SECONDS,
   type OpeningEntry,
   type OpeningStage,
 } from "./opening";
+import {
+  type NoseReaction,
+  publishNoseRuntimeTestState,
+} from "./runtimeTestState";
 
 const FINAL_CAMERA_POSITION = new Vector3(4.2, 9.52, 16.7);
 const FINAL_CAMERA_TARGET = new Vector3(0, 1.12, 4.6);
@@ -15,6 +28,8 @@ const CLOSE_CAMERA_POSITION = new Vector3(0, 2.9, 4.15);
 const CLOSE_CAMERA_TARGET = new Vector3(0, 1.72, 0.72);
 const SNEEZE_CAMERA_POSITION = new Vector3(4.8, 11.25, 19.4);
 const SNEEZE_CAMERA_TARGET = new Vector3(0, 0.9, 3.8);
+const NOSE_TURNTABLE_PIVOT = new Vector3(0, 0, 0.1);
+const UP = new Vector3(0, 1, 0);
 
 const FULL_TIMING = {
   detected: 1.65,
@@ -25,12 +40,6 @@ const FULL_TIMING = {
 
 const REDUCED_COMPLETE_SECONDS = 1.15;
 
-const SCENT_PARTICLES = Array.from({ length: 18 }, (_, index) => ({
-  offset: index / 18,
-  side: index % 2 === 0 ? -1 : 1,
-  size: 0.07 + (index % 3) * 0.025,
-}));
-
 type OpeningSequenceProps = {
   active: boolean;
   entry: OpeningEntry;
@@ -38,6 +47,15 @@ type OpeningSequenceProps = {
   onComplete: () => void;
   onStage: (stage: OpeningStage) => void;
   skipRequested: boolean;
+  trackedCompanies: readonly TrackedCompany[];
+  trackedVehicleBody: React.RefObject<RapierRigidBody | null>;
+};
+
+type OpeningCamera = {
+  closePosition: Vector3;
+  closeTarget: Vector3;
+  sneezePosition: Vector3;
+  sneezeTarget: Vector3;
 };
 
 function easeOutCubic(value: number) {
@@ -48,89 +66,21 @@ function smoothstep(value: number) {
   return value * value * (3 - 2 * value);
 }
 
-function PhysicalFreshnessGauge({
-  needle,
-}: {
-  needle: React.RefObject<Group | null>;
-}) {
-  return (
-    <group position={[0, 0.92, 1.86]} rotation={[-0.12, 0, 0]}>
-      <mesh castShadow>
-        <boxGeometry args={[1.62, 0.78, 0.16]} />
-        <meshStandardMaterial color="#f2e7d2" flatShading roughness={1} />
-      </mesh>
-      <mesh position={[0, 0, 0.09]}>
-        <boxGeometry args={[1.38, 0.55, 0.035]} />
-        <meshStandardMaterial color="#252723" flatShading roughness={1} />
-      </mesh>
-      {[-0.5, -0.25, 0, 0.25, 0.5].map((x, index) => (
-        <mesh key={x} position={[x, 0.13, 0.12]}>
-          <boxGeometry args={[0.07, 0.22 + index * 0.025, 0.035]} />
-          <meshStandardMaterial
-            color={index > 2 ? "#ef6d32" : "#a9b86e"}
-            emissive={index > 2 ? "#ef6d32" : "#a9b86e"}
-            emissiveIntensity={0.12}
-            flatShading
-            roughness={1}
-          />
-        </mesh>
-      ))}
-      <group position={[0, -0.17, 0.14]} ref={needle}>
-        <mesh position={[0, 0.24, 0]}>
-          <boxGeometry args={[0.065, 0.48, 0.055]} />
-          <meshStandardMaterial color="#ef6d32" flatShading roughness={1} />
-        </mesh>
-        <mesh>
-          <cylinderGeometry args={[0.12, 0.12, 0.07, 8]} />
-          <meshStandardMaterial color="#d8c8a8" flatShading roughness={1} />
-        </mesh>
-      </group>
-    </group>
-  );
+function orientOpeningPoint(point: Vector3, yaw: number) {
+  return point
+    .clone()
+    .sub(NOSE_TURNTABLE_PIVOT)
+    .applyAxisAngle(UP, yaw)
+    .add(NOSE_TURNTABLE_PIVOT);
 }
 
-function TheNose({
-  gaugeNeedle,
-  nose,
-}: {
-  gaugeNeedle: React.RefObject<Group | null>;
-  nose: React.RefObject<Group | null>;
-}) {
-  return (
-    <group position={[0, 0, 0.1]}>
-      <mesh castShadow position={[0, 1.52, 0]}>
-        <cylinderGeometry args={[0.46, 0.68, 1.75, 7]} />
-        <meshStandardMaterial color="#f2e7d2" flatShading roughness={1} />
-      </mesh>
-      <group position={[0, NOSE_REST_POSITION_Y, 0]} ref={nose}>
-        <mesh
-          castShadow
-          position={[0, 0.55, 0.32]}
-          rotation={[-0.2, 0, 0]}
-          scale={[0.78, 1.28, 0.9]}
-        >
-          <dodecahedronGeometry args={[0.72, 0]} />
-          <meshStandardMaterial color="#ef6d32" flatShading roughness={1} />
-        </mesh>
-        <mesh castShadow position={[0, 0.08, 0.78]} scale={[1.1, 0.68, 0.9]}>
-          <dodecahedronGeometry args={[0.6, 0]} />
-          <meshStandardMaterial color="#ef6d32" flatShading roughness={1} />
-        </mesh>
-        {[-0.29, 0.29].map((x) => (
-          <mesh
-            key={x}
-            position={[x, -0.03, 1.25]}
-            rotation={[Math.PI / 2, 0, 0]}
-            scale={[1, 0.42, 1]}
-          >
-            <cylinderGeometry args={[0.17, 0.2, 0.08, 8]} />
-            <meshStandardMaterial color="#252723" flatShading roughness={1} />
-          </mesh>
-        ))}
-      </group>
-      <PhysicalFreshnessGauge needle={gaugeNeedle} />
-    </group>
-  );
+function getOpeningCamera(yaw: number): OpeningCamera {
+  return {
+    closePosition: orientOpeningPoint(CLOSE_CAMERA_POSITION, yaw),
+    closeTarget: orientOpeningPoint(CLOSE_CAMERA_TARGET, yaw),
+    sneezePosition: orientOpeningPoint(SNEEZE_CAMERA_POSITION, yaw),
+    sneezeTarget: orientOpeningPoint(SNEEZE_CAMERA_TARGET, yaw),
+  };
 }
 
 function InspectorCartCover({
@@ -156,37 +106,6 @@ function InspectorCartCover({
   );
 }
 
-function ScentParticles({
-  particles,
-}: {
-  particles: React.RefObject<Group | null>;
-}) {
-  return (
-    <group ref={particles}>
-      {SCENT_PARTICLES.map(({ offset, side, size }, index) => (
-        <mesh
-          key={`${offset}-${side}`}
-          position={[
-            side * (0.6 + offset * 1.5),
-            1.45 + offset,
-            1.5 + offset * 3,
-          ]}
-          scale={size}
-        >
-          <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial
-            color={index % 3 === 0 ? "#f5c85e" : "#f2e7d2"}
-            emissive={index % 3 === 0 ? "#ef6d32" : "#f2e7d2"}
-            emissiveIntensity={0.24}
-            flatShading
-            roughness={1}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
 export function OpeningSequence({
   active,
   entry,
@@ -194,14 +113,23 @@ export function OpeningSequence({
   onComplete,
   onStage,
   skipRequested,
+  trackedCompanies,
+  trackedVehicleBody,
 }: OpeningSequenceProps) {
   const { camera } = useThree();
+  const freshness = useMemo(
+    () => getNewestFlagshipLaunchFreshness(trackedCompanies),
+    [trackedCompanies],
+  );
+  const openingCamera = useMemo(
+    () => getOpeningCamera(freshness.dealershipYaw),
+    [freshness.dealershipYaw],
+  );
   const elapsed = useRef(0);
   const completed = useRef(false);
   const currentStage = useRef<OpeningStage>("inhale");
-  const nose = useRef<Group>(null);
-  const gaugeNeedle = useRef<Group>(null);
-  const particles = useRef<Group>(null);
+  const noseHandles = useNoseLandmarkHandles();
+  const { gaugeNeedle, nose, particles, turntable } = noseHandles;
   const cover = useRef<Group>(null);
   const finalCameraPosition = useRef(new Vector3());
   const finalCameraTarget = useRef(new Vector3());
@@ -222,13 +150,16 @@ export function OpeningSequence({
     const noseGroup = nose.current;
     const needleGroup = gaugeNeedle.current;
     const particleGroup = particles.current;
+    const turntableGroup = turntable.current;
 
     if (!active && !isDriving) {
       camera.position.copy(
-        entry === "reduced" ? FINAL_CAMERA_POSITION : CLOSE_CAMERA_POSITION,
+        entry === "reduced"
+          ? FINAL_CAMERA_POSITION
+          : openingCamera.closePosition,
       );
       camera.lookAt(
-        entry === "reduced" ? FINAL_CAMERA_TARGET : CLOSE_CAMERA_TARGET,
+        entry === "reduced" ? FINAL_CAMERA_TARGET : openingCamera.closeTarget,
       );
       return;
     }
@@ -317,35 +248,7 @@ export function OpeningSequence({
 
     if (particleGroup) {
       particleGroup.visible = time < FULL_TIMING.sneeze;
-
-      for (const [index, particle] of particleGroup.children.entries()) {
-        const particleDefinition = SCENT_PARTICLES[index];
-        const cycle = (time * 0.46 + particleDefinition.offset) % 1;
-        const easedCycle = smoothstep(cycle);
-        const nostrilX = particleDefinition.side * 0.29;
-        const startX =
-          particleDefinition.side * (0.85 + particleDefinition.offset * 1.8);
-
-        particle.position.set(
-          MathUtils.lerp(startX, nostrilX, easedCycle) +
-            Math.sin(time * 4 + index) * 0.08 * (1 - easedCycle),
-          MathUtils.lerp(
-            1.4 + particleDefinition.offset * 1.7,
-            1.52,
-            easedCycle,
-          ),
-          MathUtils.lerp(
-            4.8 + particleDefinition.offset * 1.8,
-            1.34,
-            easedCycle,
-          ),
-        );
-        particle.rotation.x += frameDelta * (1.4 + index * 0.03);
-        particle.rotation.y += frameDelta * (2.1 + index * 0.04);
-        particle.scale.setScalar(
-          particleDefinition.size * (1 - easedCycle * 0.58),
-        );
-      }
+      animateNoseInhaleParticles(particleGroup, time, frameDelta);
     }
 
     if (noseGroup) {
@@ -363,9 +266,9 @@ export function OpeningSequence({
     }
 
     if (time < FULL_TIMING.sneeze) {
-      camera.position.copy(CLOSE_CAMERA_POSITION);
+      camera.position.copy(openingCamera.closePosition);
       camera.position.y += Math.sin(time * 1.9) * 0.025;
-      camera.lookAt(CLOSE_CAMERA_TARGET);
+      camera.lookAt(openingCamera.closeTarget);
     } else {
       const sneezeProgress = MathUtils.clamp(
         (time - FULL_TIMING.sneeze) / 1.1,
@@ -381,25 +284,25 @@ export function OpeningSequence({
       if (settleProgress === 0) {
         const impulse = easeOutCubic(sneezeProgress);
         camera.position.lerpVectors(
-          CLOSE_CAMERA_POSITION,
-          SNEEZE_CAMERA_POSITION,
+          openingCamera.closePosition,
+          openingCamera.sneezePosition,
           impulse,
         );
         finalCameraTarget.current.lerpVectors(
-          CLOSE_CAMERA_TARGET,
-          SNEEZE_CAMERA_TARGET,
+          openingCamera.closeTarget,
+          openingCamera.sneezeTarget,
           impulse,
         );
       } else {
         const settle = smoothstep(settleProgress);
         finalCameraPosition.current.lerpVectors(
-          SNEEZE_CAMERA_POSITION,
+          openingCamera.sneezePosition,
           FINAL_CAMERA_POSITION,
           settle,
         );
         camera.position.copy(finalCameraPosition.current);
         finalCameraTarget.current.lerpVectors(
-          SNEEZE_CAMERA_TARGET,
+          openingCamera.sneezeTarget,
           FINAL_CAMERA_TARGET,
           settle,
         );
@@ -445,6 +348,24 @@ export function OpeningSequence({
       onStage(nextStage);
     }
 
+    if (import.meta.env.DEV && turntableGroup) {
+      const reaction: NoseReaction =
+        time >= FULL_TIMING.sneeze && time < FULL_TIMING.wake
+          ? "sneeze"
+          : time < FULL_TIMING.sneeze
+            ? "inhale"
+            : "idle";
+
+      publishNoseRuntimeTestState({
+        freshness,
+        gaugeLabel: NOSE_GAUGE_LABEL,
+        mode: "model-freshness",
+        particlesVisible: particleGroup?.visible ?? false,
+        reaction,
+        turntableYaw: turntableGroup.rotation.y,
+      });
+    }
+
     if (time >= FULL_TIMING.complete) {
       complete();
     }
@@ -452,8 +373,18 @@ export function OpeningSequence({
 
   return (
     <>
-      <TheNose gaugeNeedle={gaugeNeedle} nose={nose} />
-      <ScentParticles particles={particles} />
+      <NoseLandmark
+        companyName={freshness.company.name}
+        handles={noseHandles}
+        orientationYaw={freshness.dealershipYaw}
+        smellRemainingPercent={freshness.smellRemainingPercent}
+      />
+      <LiveNoseController
+        active={isDriving}
+        freshness={freshness}
+        handles={noseHandles}
+        trackedVehicleBody={trackedVehicleBody}
+      />
       <InspectorCartCover cover={cover} />
     </>
   );
