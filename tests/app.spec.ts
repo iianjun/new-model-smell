@@ -171,15 +171,22 @@ test("visitor drives the Inspector Cart through a collision and remains in contr
 test("a roadside tree stops the Inspector Cart before the town boundary", async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    const testWindow = window as Window & {
+      __NEW_MODEL_MOTORS_TEST_FIXTURES__?: {
+        initialCartPosition: { x: number; y: number; z: number };
+      };
+    };
+
+    testWindow.__NEW_MODEL_MOTORS_TEST_FIXTURES__ = {
+      initialCartPosition: { x: -9.4, y: 0.72, z: 9 },
+    };
+  });
   await page.goto("/");
   await skipOpening(page);
   await observeDrivingState(page, "Bounced clear");
 
   await page.keyboard.down("w");
-  await page.keyboard.down("a");
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(1_175);
-  await page.keyboard.up("a");
 
   await expectDrivingStateWasObserved(page, 2_800);
   await page.keyboard.up("w");

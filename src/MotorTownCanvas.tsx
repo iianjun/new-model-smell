@@ -1,7 +1,8 @@
 import { Canvas } from "@react-three/fiber";
-import { Physics } from "@react-three/rapier";
-import { Suspense, useEffect } from "react";
+import { Physics, type RapierRigidBody } from "@react-three/rapier";
+import { Suspense, useEffect, useRef } from "react";
 import type { DrivingTelemetry } from "./driving";
+import type { FlagshipModel, WorldPosition } from "./flagshipLineup";
 import { InspectorCart } from "./InspectorCart";
 import { MotorTownGraybox } from "./MotorTownGraybox";
 import { OpeningSequence } from "./OpeningSequence";
@@ -9,11 +10,14 @@ import type { OpeningEntry, OpeningStage } from "./opening";
 import { RoadGuidance } from "./RoadGuidance";
 
 type MotorTownCanvasProps = {
+  initialCartPosition: WorldPosition;
   isDriving: boolean;
   onOpeningComplete: () => void;
   onOpeningStage: (stage: OpeningStage) => void;
   onReady: () => void;
+  onShowroomVisibilityChange: (visible: boolean) => void;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
+  openAiFlagshipLineup: readonly FlagshipModel[];
   openingActive: boolean;
   openingEntry: OpeningEntry;
   openingStage: OpeningStage;
@@ -32,15 +36,20 @@ function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
 
 function MotorTownWorld({
   isDriving,
+  initialCartPosition,
   onOpeningComplete,
   onOpeningStage,
   onReady,
+  onShowroomVisibilityChange,
   onTelemetry,
+  openAiFlagshipLineup,
   openingActive,
   openingEntry,
   openingStage,
   skipRequested,
 }: MotorTownCanvasProps) {
+  const inspectorCartBody = useRef<RapierRigidBody>(null);
+
   return (
     <>
       <ambientLight intensity={1.8} />
@@ -61,11 +70,17 @@ function MotorTownWorld({
 
       <Suspense fallback={null}>
         <Physics colliders={false} gravity={[0, -13, 0]}>
-          <MotorTownGraybox />
+          <MotorTownGraybox
+            inspectorCartBody={inspectorCartBody}
+            onShowroomVisibilityChange={onShowroomVisibilityChange}
+            openAiFlagshipLineup={openAiFlagshipLineup}
+          />
           <InspectorCart
             awake={isDriving || openingStage === "wake"}
+            body={inspectorCartBody}
             cameraEnabled={isDriving}
             controlsEnabled={isDriving}
+            initialPosition={initialCartPosition}
             onTelemetry={onTelemetry}
           />
           <OpeningSequence
