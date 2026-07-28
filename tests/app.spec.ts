@@ -22,15 +22,18 @@ async function observeDrivingState(
     }
 
     const testWindow = window as Window & {
-      observedDrivingState?: boolean;
+      observedDrivingStates?: Record<string, boolean>;
     };
+    const observations = testWindow.observedDrivingStates ?? {};
+    testWindow.observedDrivingStates = observations;
+    observations[text] = false;
+
     const updateObservation = () => {
       if (state.textContent?.includes(text)) {
-        testWindow.observedDrivingState = true;
+        observations[text] = true;
       }
     };
 
-    testWindow.observedDrivingState = false;
     new MutationObserver(updateObservation).observe(state, {
       characterData: true,
       childList: true,
@@ -42,16 +45,19 @@ async function observeDrivingState(
 
 async function expectDrivingStateWasObserved(
   page: import("@playwright/test").Page,
+  expectedText: string,
   timeout: number,
 ) {
   await expect
     .poll(
       () =>
-        page.evaluate(
-          () =>
-            (window as Window & { observedDrivingState?: boolean })
-              .observedDrivingState,
-        ),
+        page.evaluate((text) => {
+          const testWindow = window as Window & {
+            observedDrivingStates?: Record<string, boolean>;
+          };
+
+          return testWindow.observedDrivingStates?.[text];
+        }, expectedText),
       { timeout },
     )
     .toBe(true);
@@ -137,27 +143,24 @@ test("visitor drives the Inspector Cart through a collision and remains in contr
 
   await expect(drivingState(page)).toContainText("Ready to inspect");
 
+  await observeDrivingState(page, "Bounced clear");
   await page.keyboard.down("w");
   await expect(drivingState(page)).toContainText("Cart in motion");
-  await expect(drivingState(page)).toContainText("Bounced clear", {
-    timeout: 8_000,
-  });
+  await expectDrivingStateWasObserved(page, "Bounced clear", 8_000);
   await page.keyboard.up("w");
   await page.waitForTimeout(1_100);
   await expect(drivingState(page)).not.toContainText("Recovery complete");
 
+  await observeDrivingState(page, "Recovery complete");
   await page.keyboard.down("w");
-  await expect(drivingState(page)).toContainText("Recovery complete", {
-    timeout: 8_000,
-  });
+  await expectDrivingStateWasObserved(page, "Recovery complete", 8_000);
   await page.keyboard.up("w");
 
   await page.waitForTimeout(750);
+  await observeDrivingState(page, "Bounced clear");
   await page.keyboard.down("ArrowDown");
   await expect(drivingState(page)).toContainText("Cart in motion");
-  await expect(drivingState(page)).toContainText("Bounced clear", {
-    timeout: 8_000,
-  });
+  await expectDrivingStateWasObserved(page, "Bounced clear", 8_000);
   await page.keyboard.down("Space");
   await expect(drivingState(page)).toContainText("handbrake");
   await page.keyboard.up("Space");
@@ -188,7 +191,7 @@ test("a roadside tree stops the Inspector Cart before the town boundary", async 
 
   await page.keyboard.down("w");
 
-  await expectDrivingStateWasObserved(page, 2_800);
+  await expectDrivingStateWasObserved(page, "Bounced clear", 2_800);
   await page.keyboard.up("w");
 });
 
@@ -204,6 +207,6 @@ test("a destination building stops the Inspector Cart before the blocked road", 
   await page.waitForTimeout(450);
   await page.keyboard.up("a");
 
-  await expectDrivingStateWasObserved(page, 6_000);
+  await expectDrivingStateWasObserved(page, "Bounced clear", 6_000);
   await page.keyboard.up("w");
 });

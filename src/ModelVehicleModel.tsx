@@ -27,6 +27,7 @@ export type LightSignature = keyof typeof LIGHT_SIGNATURE_POSITIONS;
 
 type ModelVehicleModelProps = {
   awake: boolean;
+  dynoRunIntensity?: RefObject<number>;
   input?: RefObject<DrivingInput>;
   model: FlagshipModel;
   signature: LightSignature;
@@ -36,6 +37,7 @@ type ModelVehicleModelProps = {
 
 export function ModelVehicleModel({
   awake,
+  dynoRunIntensity,
   input,
   model,
   signature,
@@ -58,6 +60,10 @@ export function ModelVehicleModel({
     );
     const wake = wakeProgress.current;
     const currentSpeed = speed?.current ?? 0;
+    const wheelSpeed =
+      Math.abs(currentSpeed) > 0.12
+        ? currentSpeed
+        : (dynoRunIntensity?.current ?? 0) * FLAGSHIP_TUNING.forwardSpeed;
     const drivingAmount = Math.min(
       Math.abs(currentSpeed) / FLAGSHIP_TUNING.forwardSpeed,
       1,
@@ -81,7 +87,7 @@ export function ModelVehicleModel({
     }
 
     for (const wheel of wheels.current) {
-      wheel.rotation.x -= currentSpeed * delta * 1.8;
+      wheel.rotation.x -= wheelSpeed * delta * 1.8;
     }
 
     if (body.current) {

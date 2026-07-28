@@ -1,3 +1,5 @@
+import type { DynoRuntimeState } from "./dyno.js";
+
 export type NoseReaction = "idle" | "inhale" | "sneeze";
 
 export type NoseTrackingMode = "model-freshness" | "vehicle-tracking";
@@ -14,8 +16,16 @@ export type NoseRuntimeTestState = {
 };
 
 export type RuntimeTestState = {
+  dyno?: DynoRuntimeState;
   nose?: NoseRuntimeTestState;
 };
+
+export function publishDynoRuntimeTestState(state: DynoRuntimeState) {
+  window.__NEW_MODEL_MOTORS_TEST_STATE__ = {
+    ...window.__NEW_MODEL_MOTORS_TEST_STATE__,
+    dyno: state,
+  };
+}
 
 type NoseRuntimeObservation = {
   freshness: {

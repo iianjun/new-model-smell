@@ -10,15 +10,20 @@ import { type DrivingTelemetry, FLAGSHIP_TUNING } from "./driving";
 import type { FlagshipModel, WorldPosition } from "./flagshipLineup";
 import { type LightSignature, ModelVehicleModel } from "./ModelVehicleModel";
 import { useArcadeVehicle } from "./useArcadeVehicle";
+import type { DrivingInput } from "./useDrivingInput";
 
 const DRIVE_OUT_EXIT_Z = -0.78;
-const FLAGSHIP_INITIAL_YAW = Math.PI;
+export const FLAGSHIP_INITIAL_YAW = Math.PI;
 
 type ActiveFlagshipProps = {
   body: RefObject<RapierRigidBody | null>;
   controlsEnabled: boolean;
+  dynoRunIntensity: RefObject<number>;
+  initialYaw: number;
   initialPosition: WorldPosition;
+  input: RefObject<DrivingInput>;
   model: FlagshipModel;
+  movementEnabled: boolean;
   onDriveOutComplete: () => void;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
   signature: LightSignature;
@@ -27,8 +32,12 @@ type ActiveFlagshipProps = {
 export function ActiveFlagship({
   body,
   controlsEnabled,
+  dynoRunIntensity,
+  initialYaw,
   initialPosition,
+  input,
   model,
+  movementEnabled,
   onDriveOutComplete,
   onTelemetry,
   signature,
@@ -38,17 +47,21 @@ export function ActiveFlagship({
     body,
     controlsEnabled,
     initialPosition,
-    initialYaw: FLAGSHIP_INITIAL_YAW,
+    initialYaw,
+    input,
+    movementEnabled,
     onTelemetry,
     tuning: FLAGSHIP_TUNING,
   });
 
   useFrame(() => {
+    const position = body.current?.translation();
+
     if (
       !controlsEnabled ||
       driveOutReported.current ||
-      (body.current?.translation().z ?? Number.NEGATIVE_INFINITY) <
-        DRIVE_OUT_EXIT_Z
+      !position ||
+      position.z < DRIVE_OUT_EXIT_Z
     ) {
       return;
     }
@@ -77,7 +90,7 @@ export function ActiveFlagship({
         position={[initialPosition.x, initialPosition.y, initialPosition.z]}
         ref={body}
         restitution={0.82}
-        rotation={[0, FLAGSHIP_INITIAL_YAW, 0]}
+        rotation={[0, initialYaw, 0]}
       >
         <CuboidCollider
           args={[0.94, 0.42, 1.42]}
@@ -87,6 +100,7 @@ export function ActiveFlagship({
         />
         <ModelVehicleModel
           awake
+          dynoRunIntensity={dynoRunIntensity}
           input={motion.input}
           model={model}
           signature={signature}

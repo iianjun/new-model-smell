@@ -1,8 +1,10 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics, type RapierRigidBody } from "@react-three/rapier";
-import { Suspense, useEffect, useRef } from "react";
-import { ActiveFlagship } from "./ActiveFlagship";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { ActiveFlagship, FLAGSHIP_INITIAL_YAW } from "./ActiveFlagship";
+import { DynoLab } from "./DynoLab";
 import type { DrivingTelemetry } from "./driving";
+import { type DynoRuntimeState, INITIAL_DYNO_RUNTIME_STATE } from "./dyno";
 import {
   type ExperienceState,
   getExperiencePhaseBehavior,
@@ -14,6 +16,10 @@ import type {
   TrackedCompany,
   WorldPosition,
 } from "./flagshipLineup";
+import {
+  getInitialActiveFlagshipPosition,
+  getInitialActiveFlagshipYaw,
+} from "./flagshipLineup";
 import { InspectorCart } from "./InspectorCart";
 import { LIGHT_SIGNATURES } from "./ModelVehicleModel";
 import { MotorTownGraybox } from "./MotorTownGraybox";
@@ -24,12 +30,14 @@ import {
   getFlagshipDisplayWorldPosition,
   getShowroomDisplayPositions,
 } from "./showroomLayout";
+import { useDrivingInput } from "./useDrivingInput";
 
 type MotorTownCanvasProps = {
   activeFlagship: FlagshipModel | null;
   experience: ExperienceState;
   initialCartPosition: WorldPosition;
   onDriveOutComplete: () => void;
+  onDynoStateChange: (state: DynoRuntimeState) => void;
   onOpeningComplete: () => void;
   onOpeningStage: (stage: OpeningStage) => void;
   onReady: () => void;
@@ -60,6 +68,7 @@ function MotorTownWorld({
   experience,
   initialCartPosition,
   onDriveOutComplete,
+  onDynoStateChange,
   onOpeningComplete,
   onOpeningStage,
   onReady,
@@ -76,12 +85,22 @@ function MotorTownWorld({
 }: MotorTownCanvasProps) {
   const inspectorCartBody = useRef<RapierRigidBody>(null);
   const activeFlagshipBody = useRef<RapierRigidBody>(null);
+  const dynoRunIntensity = useRef(0);
+  const [dynoState, setDynoState] = useState(INITIAL_DYNO_RUNTIME_STATE);
   const phaseBehavior = getExperiencePhaseBehavior(experience.phase);
   const openingCompleted = phaseBehavior.openingCompleted;
   const inspectorControlsEnabled =
     phaseBehavior.controlledVehicle === "inspector-cart";
   const flagshipControlsEnabled =
     phaseBehavior.controlledVehicle === "active-flagship";
+  const flagshipInput = useDrivingInput(flagshipControlsEnabled);
+  const updateDynoState = useCallback(
+    (state: DynoRuntimeState) => {
+      setDynoState(state);
+      onDynoStateChange(state);
+    },
+    [onDynoStateChange],
+  );
   const valetTransfer: ValetTransferController = {
     activeFlagshipId: experience.activeFlagshipId,
     onPhaseComplete: onTransferPhaseComplete,
@@ -94,9 +113,13 @@ function MotorTownWorld({
   const displayPositions = getShowroomDisplayPositions(
     openAiFlagshipLineup.length,
   );
-  const activeFlagshipPosition = getFlagshipDisplayWorldPosition(
+  const defaultActiveFlagshipPosition = getFlagshipDisplayWorldPosition(
     activeFlagshipIndex >= 0 ? displayPositions[activeFlagshipIndex] : 0,
   );
+  const activeFlagshipPosition = getInitialActiveFlagshipPosition(
+    defaultActiveFlagshipPosition,
+  );
+  const activeFlagshipYaw = getInitialActiveFlagshipYaw(FLAGSHIP_INITIAL_YAW);
 
   return (
     <>
@@ -138,8 +161,12 @@ function MotorTownWorld({
             <ActiveFlagship
               body={activeFlagshipBody}
               controlsEnabled
+              dynoRunIntensity={dynoRunIntensity}
+              initialYaw={activeFlagshipYaw}
               initialPosition={activeFlagshipPosition}
+              input={flagshipInput}
               model={activeFlagship}
+              movementEnabled={!dynoState.vehicleSecured}
               onDriveOutComplete={onDriveOutComplete}
               onTelemetry={onTelemetry}
               signature={
@@ -149,6 +176,16 @@ function MotorTownWorld({
               }
             />
           ) : null}
+          <DynoLab
+            activeFlagshipAvailable={Boolean(
+              activeFlagship && experience.driveOutComplete,
+            )}
+            activeFlagshipBody={activeFlagshipBody}
+            input={flagshipInput}
+            inspectorCartBody={inspectorCartBody}
+            onStateChange={updateDynoState}
+            runIntensity={dynoRunIntensity}
+          />
           <OpeningSequence
             active={openingActive}
             entry={openingEntry}
