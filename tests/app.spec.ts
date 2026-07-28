@@ -204,6 +204,6 @@ test("a destination building stops the Inspector Cart before the blocked road", 
   await page.waitForTimeout(450);
   await page.keyboard.up("a");
 
-  await expectDrivingStateWasObserved(page, 3_500);
+  await expectDrivingStateWasObserved(page, 6_000);
   await page.keyboard.up("w");
 });

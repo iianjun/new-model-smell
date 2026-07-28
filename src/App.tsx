@@ -3,11 +3,20 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useMemo,
+  useReducer,
   useRef,
   useState,
 } from "react";
 import "./App.css";
 import { type DrivingTelemetry, INITIAL_DRIVING_TELEMETRY } from "./driving";
+import {
+  type ExperienceState,
+  experienceReducer,
+  getExperiencePhaseBehavior,
+  INITIAL_EXPERIENCE_STATE,
+  type TransferPhase,
+} from "./experience";
 import {
   type FlagshipModel,
   getInitialCartPosition,
@@ -47,7 +56,8 @@ function LoadingSurface() {
 }
 
 type RuntimeInterfaceProps = {
-  isDriving: boolean;
+  activeFlagship: FlagshipModel | null;
+  experience: ExperienceState;
   openingEntry: OpeningEntry;
   openingStage: OpeningStage;
   openAiFlagshipLineup: readonly FlagshipModel[];
@@ -56,20 +66,48 @@ type RuntimeInterfaceProps = {
 };
 
 function RuntimeInterface({
-  isDriving,
+  activeFlagship,
+  experience,
   openingEntry,
   openingStage,
   openAiFlagshipLineup,
   showroomVisible,
   telemetry,
 }: RuntimeInterfaceProps) {
-  const drivingLabel = {
+  const inspectorDrivingLabel = {
     bounce: "Bounced clear",
     driving: "Cart in motion",
     handbrake: "Short handbrake",
     ready: "Ready to inspect",
     recovery: "Recovery complete",
   }[telemetry.state];
+  const flagshipDrivingLabel = experience.driveOutComplete
+    ? "Drive-Out complete"
+    : {
+        bounce: "Bounced clear",
+        driving: "Flagship in motion",
+        handbrake: "Controlled drift",
+        ready: "Ready for Drive-Out",
+        recovery: "Recovery complete",
+      }[telemetry.state];
+  const phaseBehavior = getExperiencePhaseBehavior(experience.phase);
+  const transferLabel = phaseBehavior.statusLabel;
+  const openingActive = !phaseBehavior.openingCompleted;
+  const inspectorDriving = phaseBehavior.controlledVehicle === "inspector-cart";
+  const flagshipDriving = phaseBehavior.controlledVehicle === "active-flagship";
+  const transferActive = Boolean(transferLabel);
+  const statusTitle = flagshipDriving
+    ? `Active Flagship · ${activeFlagship?.name ?? "Pending"}`
+    : transferActive
+      ? `Valet Transfer · ${activeFlagship?.name ?? "Pending"}`
+      : "Inspector Cart";
+  const statusLabel = openingActive
+    ? "Opening owns controls"
+    : inspectorDriving
+      ? inspectorDrivingLabel
+      : flagshipDriving
+        ? flagshipDrivingLabel
+        : transferLabel;
   const showFreshnessEvent =
     openingEntry === "full" &&
     (openingStage === "detected" || openingStage === "sneeze");
@@ -83,38 +121,49 @@ function RuntimeInterface({
   return (
     <div className="runtime-interface">
       <header className="title-lockup">
-        <p>Motor Town · Runtime 03</p>
+        <p>Motor Town · Runtime 05</p>
         <h1>New Model Motors</h1>
       </header>
 
       <aside
-        aria-label="Inspector Cart status"
+        aria-label={
+          flagshipDriving
+            ? "Active Flagship status"
+            : transferActive
+              ? "Valet Transfer status"
+              : "Inspector Cart status"
+        }
         aria-live="polite"
         className="runtime-card"
+        data-phase={experience.phase}
         data-testid="driving-state"
         role="status"
       >
         <span className="status-light" aria-hidden="true" />
         <div>
-          <p>Inspector Cart</p>
-          <strong>{isDriving ? drivingLabel : "Opening owns controls"}</strong>
+          <p>{statusTitle}</p>
+          <strong>{statusLabel}</strong>
         </div>
       </aside>
 
-      {isDriving ? (
+      {!openingActive ? (
         <>
           <ShowroomDirectory
             lineup={openAiFlagshipLineup}
             visible={showroomVisible}
           />
-          <aside className="driving-guide" aria-label="Driving controls">
-            <p>Drive</p>
-            <strong>WASD · Arrows</strong>
-            <span>Short handbrake · Space</span>
-          </aside>
-          <p className="visually-hidden" role="status">
-            WASD — BEGIN INSPECTION
-          </p>
+          {inspectorDriving || flagshipDriving ? (
+            <aside className="driving-guide" aria-label="Driving controls">
+              <p>{flagshipDriving ? "Drive-Out" : "Drive"}</p>
+              <strong>WASD · Arrows</strong>
+              <span>Short handbrake · Space</span>
+            </aside>
+          ) : null}
+          {inspectorDriving ? (
+            <p className="visually-hidden" role="status">
+              WASD — BEGIN INSPECTION
+            </p>
+          ) : null}
         </>
       ) : (
         <>
@@ -141,8 +190,8 @@ function RuntimeInterface({
       )}
 
       <p className="runtime-caption">
-        Live Motor Town opening
-        <span>03</span>
+        Live Valet Transfer
+        <span>05</span>
       </p>
     </div>
   );
@@ -155,14 +204,27 @@ function getOpeningEntry(): OpeningEntry {
 }
 
 function App() {
-  const [initialCartPosition] = useState<WorldPosition>(getInitialCartPosition);
   const [openAiFlagshipLineup] = useState<readonly FlagshipModel[]>(
     getOpenAiFlagshipLineup,
   );
+  const [initialCartPosition] = useState<WorldPosition>(() =>
+    getInitialCartPosition(openAiFlagshipLineup),
+  );
+  const [experience, dispatchExperience] = useReducer(
+    experienceReducer,
+    INITIAL_EXPERIENCE_STATE,
+  );
+  const experienceBehavior = getExperiencePhaseBehavior(experience.phase);
+  const activeFlagship = useMemo(
+    () =>
+      openAiFlagshipLineup.find(
+        (model) => model.id === experience.activeFlagshipId,
+      ) ?? null,
+    [experience.activeFlagshipId, openAiFlagshipLineup],
+  );
   const isReadyRef = useRef(false);
-  const isDrivingRef = useRef(false);
+  const openingCompletedRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
-  const [isDriving, setIsDriving] = useState(false);
   const [openingEntry, setOpeningEntry] =
     useState<OpeningEntry>(getOpeningEntry);
   const [openingStage, setOpeningStage] = useState<OpeningStage>(
@@ -180,9 +242,18 @@ function App() {
     setIsReady(true);
   }, []);
   const finishOpening = useCallback(() => {
-    isDrivingRef.current = true;
-    setIsDriving(true);
+    openingCompletedRef.current = true;
+    dispatchExperience({ type: "opening-completed" });
     setSkipRequested(false);
+  }, []);
+  const startValetTransfer = useCallback((flagshipId: string) => {
+    dispatchExperience({ flagshipId, type: "valet-transfer-started" });
+  }, []);
+  const completeValetPhase = useCallback((phase: TransferPhase) => {
+    dispatchExperience({ phase, type: "valet-phase-completed" });
+  }, []);
+  const completeDriveOut = useCallback(() => {
+    dispatchExperience({ type: "drive-out-completed" });
   }, []);
   const updateTelemetry = useCallback(
     (nextTelemetry: DrivingTelemetry) => setTelemetry(nextTelemetry),
@@ -192,7 +263,7 @@ function App() {
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const updateOpeningEntry = () => {
-      if (!isDriving) {
+      if (!experienceBehavior.openingCompleted) {
         setOpeningEntry(mediaQuery.matches ? "reduced" : "full");
       }
     };
@@ -201,11 +272,11 @@ function App() {
     mediaQuery.addEventListener("change", updateOpeningEntry);
 
     return () => mediaQuery.removeEventListener("change", updateOpeningEntry);
-  }, [isDriving]);
+  }, [experienceBehavior.openingCompleted]);
 
   useEffect(() => {
     const skipOpening = (event: KeyboardEvent) => {
-      if (event.repeat || !isReadyRef.current || isDrivingRef.current) {
+      if (event.repeat || !isReadyRef.current || openingCompletedRef.current) {
         return;
       }
 
@@ -223,15 +294,19 @@ function App() {
       <div className="world-canvas" aria-hidden="true">
         <Suspense fallback={null}>
           <MotorTownCanvas
+            activeFlagship={activeFlagship}
+            experience={experience}
             initialCartPosition={initialCartPosition}
-            isDriving={isDriving}
+            onDriveOutComplete={completeDriveOut}
             onOpeningComplete={finishOpening}
             onOpeningStage={setOpeningStage}
             onReady={markRuntimeReady}
             onShowroomVisibilityChange={setShowroomVisible}
             onTelemetry={updateTelemetry}
+            onTransferPhaseComplete={completeValetPhase}
+            onTransferStart={startValetTransfer}
             openAiFlagshipLineup={openAiFlagshipLineup}
-            openingActive={isReady && !isDriving}
+            openingActive={isReady && !experienceBehavior.openingCompleted}
             openingEntry={openingEntry}
             openingStage={openingStage}
             skipRequested={skipRequested}
@@ -241,7 +316,8 @@ function App() {
 
       {isReady ? (
         <RuntimeInterface
-          isDriving={isDriving}
+          activeFlagship={activeFlagship}
+          experience={experience}
           openingEntry={openingEntry}
           openingStage={openingStage}
           openAiFlagshipLineup={openAiFlagshipLineup}

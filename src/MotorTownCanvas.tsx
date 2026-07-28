@@ -1,22 +1,38 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics, type RapierRigidBody } from "@react-three/rapier";
 import { Suspense, useEffect, useRef } from "react";
+import { ActiveFlagship } from "./ActiveFlagship";
 import type { DrivingTelemetry } from "./driving";
+import {
+  type ExperienceState,
+  getExperiencePhaseBehavior,
+  type TransferPhase,
+  type ValetTransferController,
+} from "./experience";
 import type { FlagshipModel, WorldPosition } from "./flagshipLineup";
 import { InspectorCart } from "./InspectorCart";
+import { LIGHT_SIGNATURES } from "./ModelVehicleModel";
 import { MotorTownGraybox } from "./MotorTownGraybox";
 import { OpeningSequence } from "./OpeningSequence";
 import type { OpeningEntry, OpeningStage } from "./opening";
 import { RoadGuidance } from "./RoadGuidance";
+import {
+  getFlagshipDisplayWorldPosition,
+  getShowroomDisplayPositions,
+} from "./showroomLayout";
 
 type MotorTownCanvasProps = {
+  activeFlagship: FlagshipModel | null;
+  experience: ExperienceState;
   initialCartPosition: WorldPosition;
-  isDriving: boolean;
+  onDriveOutComplete: () => void;
   onOpeningComplete: () => void;
   onOpeningStage: (stage: OpeningStage) => void;
   onReady: () => void;
   onShowroomVisibilityChange: (visible: boolean) => void;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
+  onTransferPhaseComplete: (phase: TransferPhase) => void;
+  onTransferStart: (flagshipId: string) => void;
   openAiFlagshipLineup: readonly FlagshipModel[];
   openingActive: boolean;
   openingEntry: OpeningEntry;
@@ -35,13 +51,17 @@ function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
 }
 
 function MotorTownWorld({
-  isDriving,
+  activeFlagship,
+  experience,
   initialCartPosition,
+  onDriveOutComplete,
   onOpeningComplete,
   onOpeningStage,
   onReady,
   onShowroomVisibilityChange,
   onTelemetry,
+  onTransferPhaseComplete,
+  onTransferStart,
   openAiFlagshipLineup,
   openingActive,
   openingEntry,
@@ -49,6 +69,28 @@ function MotorTownWorld({
   skipRequested,
 }: MotorTownCanvasProps) {
   const inspectorCartBody = useRef<RapierRigidBody>(null);
+  const activeFlagshipBody = useRef<RapierRigidBody>(null);
+  const phaseBehavior = getExperiencePhaseBehavior(experience.phase);
+  const openingCompleted = phaseBehavior.openingCompleted;
+  const inspectorControlsEnabled =
+    phaseBehavior.controlledVehicle === "inspector-cart";
+  const flagshipControlsEnabled =
+    phaseBehavior.controlledVehicle === "active-flagship";
+  const valetTransfer: ValetTransferController = {
+    activeFlagshipId: experience.activeFlagshipId,
+    onPhaseComplete: onTransferPhaseComplete,
+    onStart: onTransferStart,
+    phase: experience.phase,
+  };
+  const activeFlagshipIndex = activeFlagship
+    ? openAiFlagshipLineup.findIndex((model) => model.id === activeFlagship.id)
+    : -1;
+  const displayPositions = getShowroomDisplayPositions(
+    openAiFlagshipLineup.length,
+  );
+  const activeFlagshipPosition = getFlagshipDisplayWorldPosition(
+    activeFlagshipIndex >= 0 ? displayPositions[activeFlagshipIndex] : 0,
+  );
 
   return (
     <>
@@ -71,27 +113,45 @@ function MotorTownWorld({
       <Suspense fallback={null}>
         <Physics colliders={false} gravity={[0, -13, 0]}>
           <MotorTownGraybox
+            activeFlagshipBody={activeFlagshipBody}
             inspectorCartBody={inspectorCartBody}
             onShowroomVisibilityChange={onShowroomVisibilityChange}
             openAiFlagshipLineup={openAiFlagshipLineup}
+            valetTransfer={valetTransfer}
           />
           <InspectorCart
-            awake={isDriving || openingStage === "wake"}
+            awake={openingCompleted || openingStage === "wake"}
             body={inspectorCartBody}
-            cameraEnabled={isDriving}
-            controlsEnabled={isDriving}
+            cameraEnabled={inspectorControlsEnabled}
+            controlsEnabled={inspectorControlsEnabled}
             initialPosition={initialCartPosition}
             onTelemetry={onTelemetry}
+            presentation={phaseBehavior.cartPresentation}
           />
+          {activeFlagship && flagshipControlsEnabled ? (
+            <ActiveFlagship
+              body={activeFlagshipBody}
+              controlsEnabled
+              initialPosition={activeFlagshipPosition}
+              model={activeFlagship}
+              onDriveOutComplete={onDriveOutComplete}
+              onTelemetry={onTelemetry}
+              signature={
+                LIGHT_SIGNATURES[
+                  Math.max(0, activeFlagshipIndex) % LIGHT_SIGNATURES.length
+                ]
+              }
+            />
+          ) : null}
           <OpeningSequence
             active={openingActive}
             entry={openingEntry}
-            isDriving={isDriving}
+            isDriving={openingCompleted}
             onComplete={onOpeningComplete}
             onStage={onOpeningStage}
             skipRequested={skipRequested}
           />
-          <RoadGuidance visible={isDriving} />
+          <RoadGuidance visible={inspectorControlsEnabled} />
           <RuntimeReady onReady={onReady} />
         </Physics>
       </Suspense>
