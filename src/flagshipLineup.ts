@@ -1,7 +1,18 @@
+import type {
+  RuntimeFlagshipModelFixture,
+  RuntimeWorldPosition,
+} from "./runtimeFixtures";
 import {
   getShowroomDisplayPositions,
   getValetBayWorldPosition,
 } from "./showroomLayout";
+
+export type {
+  RuntimeFixtures,
+  RuntimeFlagshipModelFixture,
+  RuntimeTrackedCompanyFixture,
+  RuntimeWorldPosition,
+} from "./runtimeFixtures";
 
 declare const publicAvailabilityDateBrand: unique symbol;
 
@@ -24,28 +35,14 @@ export type FlagshipModel = {
   publicAvailabilityDate: PublicAvailabilityDate;
 };
 
-export type WorldPosition = {
-  x: number;
-  y: number;
-  z: number;
-};
+export type WorldPosition = RuntimeWorldPosition;
 
-type RuntimeFixtures = {
-  initialCartPosition?: WorldPosition;
-  initialCartValetBayIndex?: number;
-  openAiFlagshipLineup?: readonly (Omit<
-    FlagshipModel,
-    "publicAvailabilityDate"
-  > & {
-    publicAvailabilityDate: string;
-  })[];
+export type TrackedCompany = {
+  dealershipPosition: WorldPosition;
+  flagshipLineup: readonly FlagshipModel[];
+  id: string;
+  name: string;
 };
-
-declare global {
-  interface Window {
-    __NEW_MODEL_MOTORS_TEST_FIXTURES__?: RuntimeFixtures;
-  }
-}
 
 const DEFAULT_INSPECTOR_CART_POSITION = {
   x: 0,
@@ -57,6 +54,12 @@ export const OPENAI_COMPANY_TRIM = {
   body: "#ef6d32",
   light: "#f5c85e",
 } as const satisfies CompanyTrim;
+
+export const OPENAI_DEALERSHIP_POSITION = {
+  x: -9.2,
+  y: 0,
+  z: -4.25,
+} as const satisfies WorldPosition;
 
 export function toPublicAvailabilityDate(value: string) {
   const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -93,6 +96,15 @@ function getRuntimeFixtures() {
     : undefined;
 }
 
+function parseRuntimeLineup(lineup: readonly RuntimeFlagshipModelFixture[]) {
+  return lineup.map((model) => ({
+    ...model,
+    publicAvailabilityDate: toPublicAvailabilityDate(
+      model.publicAvailabilityDate,
+    ),
+  }));
+}
+
 export function getInitialCartPosition(
   lineup: readonly FlagshipModel[] = OPENAI_FLAGSHIP_LINEUP,
 ): WorldPosition {
@@ -122,13 +134,29 @@ export function getOpenAiFlagshipLineup(): readonly FlagshipModel[] {
   const fixtureLineup = getRuntimeFixtures()?.openAiFlagshipLineup;
 
   return fixtureLineup
-    ? fixtureLineup.map((model) => ({
-        ...model,
-        publicAvailabilityDate: toPublicAvailabilityDate(
-          model.publicAvailabilityDate,
-        ),
-      }))
+    ? parseRuntimeLineup(fixtureLineup)
     : OPENAI_FLAGSHIP_LINEUP;
+}
+
+export function getTrackedCompanies(): readonly TrackedCompany[] {
+  const fixtureCompanies = getRuntimeFixtures()?.trackedCompanies;
+
+  if (fixtureCompanies) {
+    return fixtureCompanies.map((company) => ({
+      ...company,
+      dealershipPosition: { ...company.dealershipPosition },
+      flagshipLineup: parseRuntimeLineup(company.flagshipLineup),
+    }));
+  }
+
+  return [
+    {
+      dealershipPosition: { ...OPENAI_DEALERSHIP_POSITION },
+      flagshipLineup: getOpenAiFlagshipLineup(),
+      id: "openai",
+      name: "OpenAI",
+    },
+  ];
 }
 
 export function getReleaseAgeInDays(

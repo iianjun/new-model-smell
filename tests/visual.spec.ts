@@ -11,7 +11,12 @@ test("road border does not render a black z-fighting seam", async ({
   await expect(
     page.getByRole("status", { name: "Loading New Model Motors" }),
   ).toBeHidden();
-  await page.waitForTimeout(3_000);
+  await page.keyboard.press("x");
+  await expect(page.getByTestId("driving-state")).toContainText(
+    "Ready to inspect",
+    { timeout: 1_500 },
+  );
+  await page.waitForTimeout(250);
 
   const screenshot = await page.screenshot();
   const artifactPixels = await page.evaluate(
