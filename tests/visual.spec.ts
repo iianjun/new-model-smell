@@ -20,14 +20,14 @@ test("road border does not render a black z-fighting seam", async ({
 
   const screenshot = await page.screenshot();
   const artifactPixels = await page.evaluate(
-    async ({ screenshotData, region }) => {
+    async ({ borderSamples, screenshotData }) => {
       const image = new Image();
       image.src = `data:image/png;base64,${screenshotData}`;
       await image.decode();
 
       const canvas = document.createElement("canvas");
-      canvas.width = region.width;
-      canvas.height = region.height;
+      canvas.width = image.width;
+      canvas.height = image.height;
 
       const context = canvas.getContext("2d");
 
@@ -35,40 +35,30 @@ test("road border does not render a black z-fighting seam", async ({
         throw new Error("Unable to inspect the Motor Town screenshot");
       }
 
-      context.drawImage(
-        image,
-        region.x,
-        region.y,
-        region.width,
-        region.height,
-        0,
-        0,
-        region.width,
-        region.height,
-      );
-
-      const pixels = context.getImageData(
-        0,
-        0,
-        region.width,
-        region.height,
-      ).data;
+      context.drawImage(image, 0, 0);
       let nearBlackPixels = 0;
 
-      for (let index = 0; index < pixels.length; index += 4) {
-        const red = pixels[index];
-        const green = pixels[index + 1];
-        const blue = pixels[index + 2];
+      for (const { x, y } of borderSamples) {
+        const pixels = context.getImageData(x - 3, y - 3, 7, 7).data;
 
-        if (red < 64 && green < 64 && blue < 64) {
-          nearBlackPixels += 1;
+        for (let index = 0; index < pixels.length; index += 4) {
+          const red = pixels[index];
+          const green = pixels[index + 1];
+          const blue = pixels[index + 2];
+
+          if (red < 64 && green < 64 && blue < 64) {
+            nearBlackPixels += 1;
+          }
         }
       }
 
       return nearBlackPixels;
     },
     {
-      region: { height: 35, width: 120, x: 1080, y: 295 },
+      borderSamples: Array.from({ length: 11 }, (_, index) => ({
+        x: 720 + index * 30,
+        y: 573 - index * 18,
+      })),
       screenshotData: screenshot.toString("base64"),
     },
   );

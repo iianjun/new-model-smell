@@ -130,6 +130,22 @@ export function getInitialCartPosition(
   return { ...DEFAULT_INSPECTOR_CART_POSITION };
 }
 
+export function getInitialActiveFlagshipPosition(
+  fallback: WorldPosition,
+): WorldPosition {
+  const position = getRuntimeFixtures()?.initialActiveFlagshipPosition;
+
+  return position ? { ...position } : fallback;
+}
+
+export function getInitialActiveFlagshipYaw(fallback: number) {
+  return getRuntimeFixtures()?.initialActiveFlagshipYaw ?? fallback;
+}
+
+export function getInitialDriveOutFlagshipId() {
+  return getRuntimeFixtures()?.initialDriveOutFlagshipId;
+}
+
 export function getOpenAiFlagshipLineup(): readonly FlagshipModel[] {
   const fixtureLineup = getRuntimeFixtures()?.openAiFlagshipLineup;
 

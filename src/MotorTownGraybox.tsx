@@ -138,65 +138,6 @@ function BlockedRoadBarrier({ position, rotation = 0 }: BarrierProps) {
   );
 }
 
-type DestinationPlotProps = {
-  accent: string;
-  position: [number, number, number];
-  roofHeight: number;
-};
-
-function DestinationPlot({
-  accent,
-  position,
-  roofHeight,
-}: DestinationPlotProps) {
-  return (
-    <RigidBody
-      colliders={false}
-      name={COLLISION_SURFACE.solidEnvironment}
-      position={position}
-      type="fixed"
-    >
-      <CylinderCollider args={[0.12, 3.15]} position={[0, 0.12, 0]} />
-      <CuboidCollider
-        args={[2.4, roofHeight / 2, 1.75]}
-        position={[0, roofHeight / 2, -0.45]}
-        restitution={0.9}
-      />
-      <CuboidCollider
-        args={[2.6, 0.28, 1.95]}
-        position={[0, roofHeight + 0.28, -0.45]}
-      />
-      <CuboidCollider args={[1.65, 0.09, 0.17]} position={[0, 0.54, 1.47]} />
-      <mesh receiveShadow position={[0, 0.12, 0]}>
-        <cylinderGeometry args={[3.15, 3.15, 0.24, 6]} />
-        <meshStandardMaterial color="#c7b994" flatShading roughness={1} />
-      </mesh>
-      <mesh castShadow receiveShadow position={[0, roofHeight / 2, -0.45]}>
-        <boxGeometry args={[4.8, roofHeight, 3.5]} />
-        <meshStandardMaterial color={WARM_IVORY} flatShading roughness={1} />
-      </mesh>
-      <mesh castShadow position={[0, roofHeight + 0.28, -0.45]}>
-        <boxGeometry args={[5.2, 0.56, 3.9]} />
-        <meshStandardMaterial color={accent} flatShading roughness={1} />
-      </mesh>
-      <mesh position={[0, 1.05, 1.32]}>
-        <boxGeometry args={[2.65, 1.8, 0.08]} />
-        <meshStandardMaterial
-          color="#719498"
-          emissive="#719498"
-          emissiveIntensity={0.08}
-          flatShading
-          roughness={0.9}
-        />
-      </mesh>
-      <mesh castShadow position={[0, 0.54, 1.47]}>
-        <boxGeometry args={[3.3, 0.18, 0.34]} />
-        <meshStandardMaterial color={accent} flatShading roughness={1} />
-      </mesh>
-    </RigidBody>
-  );
-}
-
 function CentralLandmarkPlot() {
   return (
     <RigidBody
@@ -346,11 +287,6 @@ export function MotorTownGraybox({
         lineup={openAiFlagshipLineup}
         onRevealActiveChange={onShowroomVisibilityChange}
         valetTransfer={valetTransfer}
-      />
-      <DestinationPlot
-        accent="#718654"
-        position={[9.2, 0, -4.25]}
-        roofHeight={2}
       />
       <CentralLandmarkPlot />
 

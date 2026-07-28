@@ -22,8 +22,11 @@ export type RuntimeTrackedCompanyFixture = {
 };
 
 export type RuntimeFixtures = {
+  initialActiveFlagshipPosition?: RuntimeWorldPosition;
+  initialActiveFlagshipYaw?: number;
   initialCartPosition?: RuntimeWorldPosition;
   initialCartValetBayIndex?: number;
+  initialDriveOutFlagshipId?: string;
   openAiFlagshipLineup?: readonly RuntimeFlagshipModelFixture[];
   trackedCompanies?: readonly RuntimeTrackedCompanyFixture[];
 };

@@ -11,6 +11,12 @@ import {
 import "./App.css";
 import { type DrivingTelemetry, INITIAL_DRIVING_TELEMETRY } from "./driving";
 import {
+  type DynoRuntimeState,
+  getDynoPhaseDefinition,
+  getDynoStatusLabel,
+  INITIAL_DYNO_RUNTIME_STATE,
+} from "./dyno";
+import {
   type ExperienceState,
   experienceReducer,
   getExperiencePhaseBehavior,
@@ -20,6 +26,7 @@ import {
 import {
   type FlagshipModel,
   getInitialCartPosition,
+  getInitialDriveOutFlagshipId,
   getTrackedCompanies,
   isInOpenAiShowroomRevealZone,
   type TrackedCompany,
@@ -58,6 +65,7 @@ function LoadingSurface() {
 
 type RuntimeInterfaceProps = {
   activeFlagship: FlagshipModel | null;
+  dynoState: DynoRuntimeState;
   experience: ExperienceState;
   openingEntry: OpeningEntry;
   openingStage: OpeningStage;
@@ -68,6 +76,7 @@ type RuntimeInterfaceProps = {
 
 function RuntimeInterface({
   activeFlagship,
+  dynoState,
   experience,
   openingEntry,
   openingStage,
@@ -97,18 +106,26 @@ function RuntimeInterface({
   const inspectorDriving = phaseBehavior.controlledVehicle === "inspector-cart";
   const flagshipDriving = phaseBehavior.controlledVehicle === "active-flagship";
   const transferActive = Boolean(transferLabel);
-  const statusTitle = flagshipDriving
-    ? `Active Flagship · ${activeFlagship?.name ?? "Pending"}`
-    : transferActive
-      ? `Valet Transfer · ${activeFlagship?.name ?? "Pending"}`
-      : "Inspector Cart";
+  const dynoPhase = getDynoPhaseDefinition(dynoState.phase);
+  const dynoActive = dynoPhase.active;
+  const statusTitle = dynoActive
+    ? dynoPhase.statusSubject === "inspector-cart"
+      ? "Dyno Lab · Flagship only"
+      : `Dyno Lab · ${activeFlagship?.name ?? "Pending"}`
+    : flagshipDriving
+      ? `Active Flagship · ${activeFlagship?.name ?? "Pending"}`
+      : transferActive
+        ? `Valet Transfer · ${activeFlagship?.name ?? "Pending"}`
+        : "Inspector Cart";
   const statusLabel = openingActive
     ? "Opening owns controls"
-    : inspectorDriving
-      ? inspectorDrivingLabel
-      : flagshipDriving
-        ? flagshipDrivingLabel
-        : transferLabel;
+    : dynoActive
+      ? getDynoStatusLabel(dynoState)
+      : inspectorDriving
+        ? inspectorDrivingLabel
+        : flagshipDriving
+          ? flagshipDrivingLabel
+          : transferLabel;
   const showFreshnessEvent =
     openingEntry === "full" &&
     (openingStage === "detected" || openingStage === "sneeze");
@@ -122,17 +139,19 @@ function RuntimeInterface({
   return (
     <div className="runtime-interface">
       <header className="title-lockup">
-        <p>Motor Town · Runtime 06</p>
+        <p>Motor Town · Runtime 07</p>
         <h1>New Model Motors</h1>
       </header>
 
       <aside
         aria-label={
-          flagshipDriving
-            ? "Active Flagship status"
-            : transferActive
-              ? "Valet Transfer status"
-              : "Inspector Cart status"
+          dynoActive
+            ? "Dyno Lab status"
+            : flagshipDriving
+              ? "Active Flagship status"
+              : transferActive
+                ? "Valet Transfer status"
+                : "Inspector Cart status"
         }
         aria-live="polite"
         className="runtime-card"
@@ -155,9 +174,30 @@ function RuntimeInterface({
           />
           {inspectorDriving || flagshipDriving ? (
             <aside className="driving-guide" aria-label="Driving controls">
-              <p>{flagshipDriving ? "Drive-Out" : "Drive"}</p>
+              <p>
+                {dynoState.vehicleSecured
+                  ? "Dyno run"
+                  : flagshipDriving
+                    ? "Drive-Out"
+                    : "Drive"}
+              </p>
               <strong>WASD · Arrows</strong>
               <span>Short handbrake · Space</span>
+            </aside>
+          ) : null}
+          {dynoState.vehicleSecured ? (
+            <aside
+              aria-label="Dyno run progress"
+              className="dyno-readout"
+              data-phase={dynoState.phase}
+              data-testid="dyno-state"
+            >
+              <p>Player-operated Dyno</p>
+              <strong>{Math.round(dynoState.progress * 100)}%</strong>
+              <progress max={1} value={dynoState.progress}>
+                {Math.round(dynoState.progress * 100)}%
+              </progress>
+              <span>{dynoPhase.readoutLabel}</span>
             </aside>
           ) : null}
           {inspectorDriving ? (
@@ -191,8 +231,8 @@ function RuntimeInterface({
       )}
 
       <p className="runtime-caption">
-        Live Model Freshness
-        <span>06</span>
+        Player-Operated Dyno
+        <span>07</span>
       </p>
     </div>
   );
@@ -219,9 +259,30 @@ function App() {
   const [initialCartPosition] = useState<WorldPosition>(() =>
     getInitialCartPosition(openAiFlagshipLineup),
   );
+  const [initialExperience] = useState<ExperienceState>(() => {
+    const driveOutFlagshipId = getInitialDriveOutFlagshipId();
+
+    if (!driveOutFlagshipId) {
+      return INITIAL_EXPERIENCE_STATE;
+    }
+
+    if (
+      !openAiFlagshipLineup.some((model) => model.id === driveOutFlagshipId)
+    ) {
+      throw new Error(
+        "Initial Drive-Out Flagship fixture is outside the loaded lineup",
+      );
+    }
+
+    return {
+      activeFlagshipId: driveOutFlagshipId,
+      driveOutComplete: true,
+      phase: "flagship-driving",
+    };
+  });
   const [experience, dispatchExperience] = useReducer(
     experienceReducer,
-    INITIAL_EXPERIENCE_STATE,
+    initialExperience,
   );
   const experienceBehavior = getExperiencePhaseBehavior(experience.phase);
   const activeFlagship = useMemo(
@@ -242,6 +303,9 @@ function App() {
   const [skipRequested, setSkipRequested] = useState(false);
   const [telemetry, setTelemetry] = useState<DrivingTelemetry>(
     INITIAL_DRIVING_TELEMETRY,
+  );
+  const [dynoState, setDynoState] = useState<DynoRuntimeState>(
+    INITIAL_DYNO_RUNTIME_STATE,
   );
   const [showroomVisible, setShowroomVisible] = useState(() =>
     isInOpenAiShowroomRevealZone(initialCartPosition),
@@ -307,6 +371,7 @@ function App() {
             experience={experience}
             initialCartPosition={initialCartPosition}
             onDriveOutComplete={completeDriveOut}
+            onDynoStateChange={setDynoState}
             onOpeningComplete={finishOpening}
             onOpeningStage={setOpeningStage}
             onReady={markRuntimeReady}
@@ -327,6 +392,7 @@ function App() {
       {isReady ? (
         <RuntimeInterface
           activeFlagship={activeFlagship}
+          dynoState={dynoState}
           experience={experience}
           openingEntry={openingEntry}
           openingStage={openingStage}

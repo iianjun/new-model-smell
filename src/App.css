@@ -74,6 +74,7 @@
 .title-lockup p,
 .runtime-card p,
 .driving-guide p,
+.dyno-readout p,
 .runtime-caption,
 .loading-detail {
   margin: 0;
@@ -249,6 +250,58 @@
   place-items: center;
   background: #ef6d32;
   color: #f2e7d2;
+}
+
+.dyno-readout {
+  position: absolute;
+  bottom: clamp(1.25rem, 3vw, 2.5rem);
+  left: 50%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 0.75rem;
+  width: min(19rem, calc(100vw - 5rem));
+  padding: 0.78rem 0.9rem;
+  border: 2px solid #252723;
+  transform: translateX(-50%);
+  background: rgba(242, 231, 210, 0.92);
+  box-shadow: 0.3rem 0.3rem 0 rgba(37, 39, 35, 0.2);
+  backdrop-filter: blur(0.4rem);
+}
+
+.dyno-readout p {
+  color: rgba(37, 39, 35, 0.66);
+  letter-spacing: 0.12em;
+}
+
+.dyno-readout strong {
+  color: #8f3717;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+
+.dyno-readout progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 0.48rem;
+  border: 1px solid #252723;
+  accent-color: #ef6d32;
+}
+
+.dyno-readout span {
+  grid-column: 1 / -1;
+  color: rgba(37, 39, 35, 0.76);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dyno-readout[data-phase="running"] {
+  box-shadow: 0.3rem 0.3rem 0 #ef6d32;
+}
+
+.dyno-readout[data-phase="sheet-ready"] {
+  background: rgba(215, 223, 174, 0.94);
 }
 
 .showroom-directory {
@@ -489,6 +542,14 @@
 
   .driving-guide {
     display: none;
+  }
+
+  .dyno-readout {
+    right: 1.25rem;
+    bottom: 6rem;
+    left: 1.25rem;
+    width: auto;
+    transform: none;
   }
 
   .opening-stage {

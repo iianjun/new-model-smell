@@ -9,7 +9,7 @@ import {
   isCartCollisionSurface,
 } from "./driving";
 import type { WorldPosition } from "./flagshipLineup";
-import { useDrivingInput } from "./useDrivingInput";
+import { type DrivingInput, useDrivingInput } from "./useDrivingInput";
 
 const COLLISION_GRACE_MS = 650;
 const TRAPPED_SPEED = 0.85;
@@ -30,6 +30,8 @@ type ArcadeVehicleMotionProps = {
   controlsEnabled: boolean;
   initialPosition: WorldPosition;
   initialYaw?: number;
+  input?: RefObject<DrivingInput>;
+  movementEnabled?: boolean;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
   tuning: ArcadeVehicleTuning;
 };
@@ -39,12 +41,15 @@ export function useArcadeVehicle({
   controlsEnabled,
   initialPosition,
   initialYaw = 0,
+  input: externalInput,
+  movementEnabled = true,
   onTelemetry,
   tuning,
 }: ArcadeVehicleMotionProps) {
   const speed = useRef(0);
   const yaw = useRef(initialYaw);
-  const input = useDrivingInput(controlsEnabled);
+  const localInput = useDrivingInput(controlsEnabled && !externalInput);
+  const input = externalInput ?? localInput;
   const collisionPressureStartedAt = useRef(0);
   const lastCollisionAt = useRef(0);
   const activeCollisionContacts = useRef(0);
@@ -56,7 +61,7 @@ export function useArcadeVehicle({
   const lastTelemetry = useRef<DrivingTelemetry | null>(null);
 
   useFrame((_, frameDelta) => {
-    if (!controlsEnabled) {
+    if (!controlsEnabled || !movementEnabled) {
       speed.current = 0;
       return;
     }
