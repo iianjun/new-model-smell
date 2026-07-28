@@ -239,6 +239,108 @@
   color: #f2e7d2;
 }
 
+.showroom-directory {
+  position: absolute;
+  top: clamp(7rem, 15vh, 9.5rem);
+  right: clamp(1.25rem, 3vw, 2.5rem);
+  width: min(23rem, calc(100vw - 2.5rem));
+  padding: 0.85rem;
+  border: 2px solid #252723;
+  pointer-events: auto;
+  background: rgba(242, 231, 210, 0.94);
+  box-shadow: 0.45rem 0.45rem 0 rgba(37, 39, 35, 0.22);
+  backdrop-filter: blur(0.55rem);
+  animation: handoff-guide-in 0.28s ease-out both;
+}
+
+.showroom-directory > header {
+  position: relative;
+  padding: 0.15rem 0.15rem 0.72rem;
+  border-bottom: 1px solid rgba(37, 39, 35, 0.38);
+}
+
+.showroom-directory > header p,
+.showroom-directory article p,
+.showroom-directory article a,
+.showroom-directory > header span {
+  margin: 0;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.showroom-directory > header p,
+.showroom-directory article > div > p:first-of-type {
+  color: rgba(37, 39, 35, 0.6);
+}
+
+.showroom-directory > header h2 {
+  margin: 0.12rem 0 0;
+  font-size: 1.1rem;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.showroom-directory > header span {
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.76rem;
+  color: #ad451e;
+}
+
+.showroom-lineup {
+  display: grid;
+  gap: 0.55rem;
+  max-height: min(46vh, 24rem);
+  padding-top: 0.6rem;
+  overflow: auto;
+}
+
+.showroom-directory article {
+  display: grid;
+  grid-template-columns: 0.48rem 1fr;
+  gap: 0.7rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(37, 39, 35, 0.3);
+  background: rgba(255, 252, 244, 0.62);
+}
+
+.model-swatch {
+  min-height: 100%;
+  border: 1px solid rgba(37, 39, 35, 0.52);
+  background: linear-gradient(
+    to bottom,
+    var(--model-light) 0 22%,
+    transparent 22% 30%,
+    var(--model-accent) 30% 100%
+  );
+}
+
+.showroom-directory article h3 {
+  margin: 0.08rem 0 0.42rem;
+  font-size: 0.98rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.showroom-directory article .model-fact {
+  margin-top: 0.1rem;
+  color: rgba(37, 39, 35, 0.74);
+  letter-spacing: 0.055em;
+  text-transform: none;
+}
+
+.showroom-directory article a {
+  display: inline-block;
+  margin-top: 0.48rem;
+  color: #8f3717;
+  letter-spacing: 0.055em;
+  text-underline-offset: 0.16rem;
+}
+
 .opening-stage,
 .opening-skip,
 .opening-announcement p {

@@ -4,7 +4,7 @@ import {
   type RapierRigidBody,
   RigidBody,
 } from "@react-three/rapier";
-import { useRef } from "react";
+import { type RefObject, useRef } from "react";
 import { MathUtils } from "three";
 import { ChaseCamera } from "./ChaseCamera";
 import {
@@ -13,6 +13,7 @@ import {
   INSPECTOR_CART_TUNING,
   isCartCollisionSurface,
 } from "./driving";
+import type { WorldPosition } from "./flagshipLineup";
 import { InspectorCartModel } from "./InspectorCartModel";
 import {
   INSPECTOR_CART_COLLIDER_CENTER_Y,
@@ -20,14 +21,15 @@ import {
 } from "./inspectorCartGeometry";
 import { useDrivingInput } from "./useDrivingInput";
 
-const START_POSITION = { x: 0, y: 0.72, z: 7.2 };
 const COLLISION_GRACE_MS = 650;
 const TRAPPED_SPEED = 0.85;
 
 type InspectorCartProps = {
   awake: boolean;
+  body: RefObject<RapierRigidBody | null>;
   cameraEnabled: boolean;
   controlsEnabled: boolean;
+  initialPosition: WorldPosition;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
 };
 
@@ -44,11 +46,12 @@ function quaternionFromYaw(yaw: number) {
 
 export function InspectorCart({
   awake,
+  body,
   cameraEnabled,
   controlsEnabled,
+  initialPosition,
   onTelemetry,
 }: InspectorCartProps) {
-  const body = useRef<RapierRigidBody>(null);
   const speed = useRef(0);
   const yaw = useRef(0);
   const input = useDrivingInput(controlsEnabled);
@@ -58,7 +61,7 @@ export function InspectorCart({
   const bounceUntil = useRef(0);
   const recoveryUntil = useRef(0);
   const recoveryArmed = useRef(true);
-  const safePosition = useRef(START_POSITION);
+  const safePosition = useRef(initialPosition);
   const lastTelemetryAt = useRef(0);
   const lastTelemetry = useRef<DrivingTelemetry | null>(null);
 
@@ -161,7 +164,7 @@ export function InspectorCart({
     ) {
       safePosition.current = {
         x: position.x,
-        y: Math.max(position.y, START_POSITION.y),
+        y: Math.max(position.y, initialPosition.y),
         z: position.z,
       };
     }
@@ -183,7 +186,7 @@ export function InspectorCart({
         safeRadius > 0 && safeRadius < 5.6 ? 5.6 / safeRadius : 1;
       const recoveryPosition = {
         x: safe.x * recoveryScale,
-        y: START_POSITION.y + 0.18,
+        y: initialPosition.y + 0.18,
         z: safe.z * recoveryScale,
       };
 
@@ -278,7 +281,7 @@ export function InspectorCart({
           );
           lastCollisionAt.current = performance.now();
         }}
-        position={[START_POSITION.x, START_POSITION.y, START_POSITION.z]}
+        position={[initialPosition.x, initialPosition.y, initialPosition.z]}
         ref={body}
         restitution={0.92}
       >

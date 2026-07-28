@@ -1,9 +1,12 @@
 import {
   CuboidCollider,
   CylinderCollider,
+  type RapierRigidBody,
   RigidBody,
 } from "@react-three/rapier";
 import { COLLISION_SURFACE } from "./driving";
+import type { FlagshipModel } from "./flagshipLineup";
+import { OpenAiDealership } from "./OpenAiDealership";
 
 type GroundPoint = readonly [x: number, z: number];
 
@@ -296,7 +299,17 @@ function DistantSilhouettes() {
   );
 }
 
-export function MotorTownGraybox() {
+type MotorTownGrayboxProps = {
+  inspectorCartBody: React.RefObject<RapierRigidBody | null>;
+  onShowroomVisibilityChange: (visible: boolean) => void;
+  openAiFlagshipLineup: readonly FlagshipModel[];
+};
+
+export function MotorTownGraybox({
+  inspectorCartBody,
+  onShowroomVisibilityChange,
+  openAiFlagshipLineup,
+}: MotorTownGrayboxProps) {
   return (
     <>
       <color attach="background" args={[PALE_BLUE]} />
@@ -322,10 +335,10 @@ export function MotorTownGraybox() {
       <RoadSegment start={TOWN_POINTS.right} end={[13, -6.6]} width={3.4} />
 
       <StartMarking />
-      <DestinationPlot
-        accent={SAFETY_ORANGE}
-        position={[-9.2, 0, -4.25]}
-        roofHeight={2.4}
+      <OpenAiDealership
+        inspectorCartBody={inspectorCartBody}
+        lineup={openAiFlagshipLineup}
+        onRevealActiveChange={onShowroomVisibilityChange}
       />
       <DestinationPlot
         accent="#718654"

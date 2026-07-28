@@ -9,10 +9,18 @@ import {
 import "./App.css";
 import { type DrivingTelemetry, INITIAL_DRIVING_TELEMETRY } from "./driving";
 import {
+  type FlagshipModel,
+  getInitialCartPosition,
+  getOpenAiFlagshipLineup,
+  isInOpenAiShowroomRevealZone,
+  type WorldPosition,
+} from "./flagshipLineup";
+import {
   INITIAL_OPENING_STAGE,
   type OpeningEntry,
   type OpeningStage,
 } from "./opening";
+import { ShowroomDirectory } from "./ShowroomDirectory";
 
 const MotorTownCanvas = lazy(() => import("./MotorTownCanvas"));
 
@@ -42,6 +50,8 @@ type RuntimeInterfaceProps = {
   isDriving: boolean;
   openingEntry: OpeningEntry;
   openingStage: OpeningStage;
+  openAiFlagshipLineup: readonly FlagshipModel[];
+  showroomVisible: boolean;
   telemetry: DrivingTelemetry;
 };
 
@@ -49,6 +59,8 @@ function RuntimeInterface({
   isDriving,
   openingEntry,
   openingStage,
+  openAiFlagshipLineup,
+  showroomVisible,
   telemetry,
 }: RuntimeInterfaceProps) {
   const drivingLabel = {
@@ -91,6 +103,10 @@ function RuntimeInterface({
 
       {isDriving ? (
         <>
+          <ShowroomDirectory
+            lineup={openAiFlagshipLineup}
+            visible={showroomVisible}
+          />
           <aside className="driving-guide" aria-label="Driving controls">
             <p>Drive</p>
             <strong>WASD · Arrows</strong>
@@ -139,6 +155,10 @@ function getOpeningEntry(): OpeningEntry {
 }
 
 function App() {
+  const [initialCartPosition] = useState<WorldPosition>(getInitialCartPosition);
+  const [openAiFlagshipLineup] = useState<readonly FlagshipModel[]>(
+    getOpenAiFlagshipLineup,
+  );
   const isReadyRef = useRef(false);
   const isDrivingRef = useRef(false);
   const [isReady, setIsReady] = useState(false);
@@ -151,6 +171,9 @@ function App() {
   const [skipRequested, setSkipRequested] = useState(false);
   const [telemetry, setTelemetry] = useState<DrivingTelemetry>(
     INITIAL_DRIVING_TELEMETRY,
+  );
+  const [showroomVisible, setShowroomVisible] = useState(() =>
+    isInOpenAiShowroomRevealZone(initialCartPosition),
   );
   const markRuntimeReady = useCallback(() => {
     isReadyRef.current = true;
@@ -200,11 +223,14 @@ function App() {
       <div className="world-canvas" aria-hidden="true">
         <Suspense fallback={null}>
           <MotorTownCanvas
+            initialCartPosition={initialCartPosition}
             isDriving={isDriving}
             onOpeningComplete={finishOpening}
             onOpeningStage={setOpeningStage}
             onReady={markRuntimeReady}
+            onShowroomVisibilityChange={setShowroomVisible}
             onTelemetry={updateTelemetry}
+            openAiFlagshipLineup={openAiFlagshipLineup}
             openingActive={isReady && !isDriving}
             openingEntry={openingEntry}
             openingStage={openingStage}
@@ -218,6 +244,8 @@ function App() {
           isDriving={isDriving}
           openingEntry={openingEntry}
           openingStage={openingStage}
+          openAiFlagshipLineup={openAiFlagshipLineup}
+          showroomVisible={showroomVisible}
           telemetry={telemetry}
         />
       ) : (
