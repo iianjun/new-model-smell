@@ -1,3 +1,8 @@
+import {
+  getShowroomDisplayPositions,
+  getValetBayWorldPosition,
+} from "./showroomLayout";
+
 declare const publicAvailabilityDateBrand: unique symbol;
 
 export type PublicAvailabilityDate = string & {
@@ -27,6 +32,7 @@ export type WorldPosition = {
 
 type RuntimeFixtures = {
   initialCartPosition?: WorldPosition;
+  initialCartValetBayIndex?: number;
   openAiFlagshipLineup?: readonly (Omit<
     FlagshipModel,
     "publicAvailabilityDate"
@@ -87,12 +93,29 @@ function getRuntimeFixtures() {
     : undefined;
 }
 
-export function getInitialCartPosition(): WorldPosition {
-  const initialCartPosition = getRuntimeFixtures()?.initialCartPosition;
+export function getInitialCartPosition(
+  lineup: readonly FlagshipModel[] = OPENAI_FLAGSHIP_LINEUP,
+): WorldPosition {
+  const fixtures = getRuntimeFixtures();
+  const initialCartPosition = fixtures?.initialCartPosition;
 
-  return initialCartPosition
-    ? { ...initialCartPosition }
-    : { ...DEFAULT_INSPECTOR_CART_POSITION };
+  if (initialCartPosition) {
+    return { ...initialCartPosition };
+  }
+
+  if (fixtures?.initialCartValetBayIndex !== undefined) {
+    const displayX = getShowroomDisplayPositions(lineup.length)[
+      fixtures.initialCartValetBayIndex
+    ];
+
+    if (displayX === undefined) {
+      throw new Error("Initial Cart Valet Bay index is outside the lineup");
+    }
+
+    return getValetBayWorldPosition(displayX);
+  }
+
+  return { ...DEFAULT_INSPECTOR_CART_POSITION };
 }
 
 export function getOpenAiFlagshipLineup(): readonly FlagshipModel[] {

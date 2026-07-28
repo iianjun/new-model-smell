@@ -5,6 +5,7 @@ import {
   RigidBody,
 } from "@react-three/rapier";
 import { COLLISION_SURFACE } from "./driving";
+import type { ValetTransferController } from "./experience";
 import type { FlagshipModel } from "./flagshipLineup";
 import { OpenAiDealership } from "./OpenAiDealership";
 
@@ -300,15 +301,19 @@ function DistantSilhouettes() {
 }
 
 type MotorTownGrayboxProps = {
+  activeFlagshipBody: React.RefObject<RapierRigidBody | null>;
   inspectorCartBody: React.RefObject<RapierRigidBody | null>;
   onShowroomVisibilityChange: (visible: boolean) => void;
   openAiFlagshipLineup: readonly FlagshipModel[];
+  valetTransfer: ValetTransferController;
 };
 
 export function MotorTownGraybox({
+  activeFlagshipBody,
   inspectorCartBody,
   onShowroomVisibilityChange,
   openAiFlagshipLineup,
+  valetTransfer,
 }: MotorTownGrayboxProps) {
   return (
     <>
@@ -336,9 +341,11 @@ export function MotorTownGraybox({
 
       <StartMarking />
       <OpenAiDealership
+        activeFlagshipBody={activeFlagshipBody}
         inspectorCartBody={inspectorCartBody}
         lineup={openAiFlagshipLineup}
         onRevealActiveChange={onShowroomVisibilityChange}
+        valetTransfer={valetTransfer}
       />
       <DestinationPlot
         accent="#718654"

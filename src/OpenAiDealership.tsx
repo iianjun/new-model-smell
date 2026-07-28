@@ -16,6 +16,10 @@ import {
 } from "three";
 import { COLLISION_SURFACE } from "./driving";
 import {
+  getExperiencePhaseBehavior,
+  type ValetTransferController,
+} from "./experience";
+import {
   type FlagshipModel,
   formatPublicAvailabilityDate,
   formatReleaseAge,
@@ -23,29 +27,30 @@ import {
   isInOpenAiShowroomRevealZone,
   OPENAI_COMPANY_TRIM,
 } from "./flagshipLineup";
+import {
+  LIGHT_SIGNATURES,
+  type LightSignature,
+  ModelVehicleModel,
+} from "./ModelVehicleModel";
+import {
+  getShowroomDisplayPositions,
+  getShowroomHalfWidth,
+  MODEL_DISPLAY_LOCAL_Z,
+  SHOWROOM_POSITION,
+} from "./showroomLayout";
+import { ValetTransferSystem } from "./ValetTransfer";
 
 const CHARCOAL = "#252723";
 const FLOOR = "#d8c8a8";
-const GLASS = "#719498";
 const SAFETY_ORANGE = "#ef6d32";
 const WARM_IVORY = "#f2e7d2";
-const SHOWROOM_POSITION = [-9.2, 0, -4.25] as const;
-const LIGHT_SIGNATURE_POSITIONS = {
-  1: [0],
-  2: [-0.17, 0.17],
-  3: [-0.34, 0, 0.34],
-} as const;
-const LIGHT_SIGNATURES = [1, 2, 3] as const;
-const WHEEL_POSITIONS = [-0.68, 0.75].flatMap((z) =>
-  [-0.91, 0.91].map((x) => ({ x, z })),
-);
-
-type LightSignature = keyof typeof LIGHT_SIGNATURE_POSITIONS;
 
 type OpenAiDealershipProps = {
+  activeFlagshipBody: React.RefObject<RapierRigidBody | null>;
   inspectorCartBody: React.RefObject<RapierRigidBody | null>;
   lineup: readonly FlagshipModel[];
   onRevealActiveChange: (active: boolean) => void;
+  valetTransfer: ValetTransferController;
 };
 
 function useDisplayTexture(
@@ -107,7 +112,13 @@ function DealershipSign() {
   );
 }
 
-function VehicleDisplayLabel({ model }: { model: FlagshipModel }) {
+function VehicleDisplayLabel({
+  compact,
+  model,
+}: {
+  compact: boolean;
+  model: FlagshipModel;
+}) {
   const age = getReleaseAgeInDays(model.publicAvailabilityDate);
   const lines = useMemo(
     () =>
@@ -122,116 +133,73 @@ function VehicleDisplayLabel({ model }: { model: FlagshipModel }) {
 
   return (
     <mesh position={[0, 0.74, -1.63]}>
-      <planeGeometry args={[2.5, 0.78]} />
+      <planeGeometry args={[compact ? 1.95 : 2.5, 0.78]} />
       <meshStandardMaterial map={texture} roughness={0.92} />
     </mesh>
   );
 }
 
 function ModelVehicle({
+  awake,
+  compact,
   displayX,
   model,
   signature,
+  trunkOpen,
+  visible,
 }: {
+  awake: boolean;
+  compact: boolean;
   displayX: number;
   model: FlagshipModel;
   signature: LightSignature;
+  trunkOpen: boolean;
+  visible: boolean;
 }) {
   return (
-    <group position={[displayX, 0, -1.05]}>
+    <group position={[displayX, 0, MODEL_DISPLAY_LOCAL_Z]} visible={visible}>
       <mesh receiveShadow position={[0, 0.13, 0]}>
-        <cylinderGeometry args={[1.35, 1.48, 0.26, 8]} />
+        <cylinderGeometry
+          args={compact ? [1.02, 1.1, 0.26, 8] : [1.35, 1.48, 0.26, 8]}
+        />
         <meshStandardMaterial color={FLOOR} flatShading roughness={1} />
       </mesh>
       <mesh receiveShadow position={[0, 0.28, 0]}>
-        <cylinderGeometry args={[1.05, 1.2, 0.1, 8]} />
+        <cylinderGeometry
+          args={compact ? [0.9, 0.98, 0.1, 8] : [1.05, 1.2, 0.1, 8]}
+        />
         <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
       </mesh>
 
-      <group position={[0, 0.37, 0.15]}>
-        <mesh castShadow receiveShadow position={[0, 0.42, 0]}>
-          <boxGeometry args={[1.72, 0.42, 2.42]} />
-          <meshStandardMaterial
-            color={OPENAI_COMPANY_TRIM.body}
-            flatShading
-            roughness={0.82}
-          />
-        </mesh>
-        <mesh castShadow position={[0, 0.39, 1.2]} rotation={[0.12, 0, 0]}>
-          <boxGeometry args={[1.64, 0.2, 0.72]} />
-          <meshStandardMaterial
-            color={OPENAI_COMPANY_TRIM.body}
-            flatShading
-            roughness={0.82}
-          />
-        </mesh>
-        <mesh castShadow position={[0, 0.72, -0.28]}>
-          <boxGeometry args={[1.36, 0.46, 1.1]} />
-          <meshStandardMaterial
-            color={GLASS}
-            emissive="#456064"
-            emissiveIntensity={0.08}
-            flatShading
-            roughness={0.55}
-          />
-        </mesh>
-        {WHEEL_POSITIONS.map(({ x, z }) => (
-          <mesh
-            castShadow
-            key={`${x}-${z}`}
-            position={[x, 0.27, z]}
-            rotation={[0, 0, Math.PI / 2]}
-          >
-            <cylinderGeometry args={[0.36, 0.36, 0.24, 10]} />
-            <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
-          </mesh>
-        ))}
-        {LIGHT_SIGNATURE_POSITIONS[signature].map((x) => (
-          <mesh key={`light-${x}`} position={[x, 0.46, 1.57]}>
-            <boxGeometry args={[0.25, 0.1, 0.04]} />
-            <meshStandardMaterial
-              color={OPENAI_COMPANY_TRIM.light}
-              emissive={OPENAI_COMPANY_TRIM.light}
-              emissiveIntensity={1.2}
-              flatShading
-              roughness={0.7}
-            />
-          </mesh>
-        ))}
-        <mesh position={[0, 0.54, -1.23]}>
-          <boxGeometry args={[1.2, 0.08, 0.035]} />
-          <meshStandardMaterial
-            color={OPENAI_COMPANY_TRIM.light}
-            emissive={OPENAI_COMPANY_TRIM.light}
-            emissiveIntensity={0.9}
-            flatShading
-            roughness={0.7}
-          />
-        </mesh>
+      <group position={[0, 0.28, 0]}>
+        <ModelVehicleModel
+          awake={awake}
+          model={model}
+          signature={signature}
+          trunkOpen={trunkOpen}
+        />
       </group>
 
-      <VehicleDisplayLabel model={model} />
+      <VehicleDisplayLabel compact={compact} model={model} />
     </group>
   );
 }
 
-function getDisplayPositions(modelCount: number) {
-  if (modelCount <= 1) {
-    return [-1.65];
-  }
-
-  const left = -1.85;
-  const right = 1.85;
-
-  return Array.from({ length: modelCount }, (_, index) =>
-    MathUtils.lerp(left, right, index / (modelCount - 1)),
-  );
-}
-
 function CutawayShell({
+  activeFlagshipBody,
   inspectorCartBody,
   onRevealActiveChange,
-}: Pick<OpenAiDealershipProps, "inspectorCartBody" | "onRevealActiveChange">) {
+  frontPostHalfWidth,
+  frontPostX,
+  showroomHalfWidth,
+}: Pick<
+  OpenAiDealershipProps,
+  "activeFlagshipBody" | "inspectorCartBody" | "onRevealActiveChange"
+> & {
+  frontPostHalfWidth: number;
+  frontPostX: number;
+  showroomHalfWidth: number;
+}) {
   const { camera } = useThree();
   const roof = useRef<Mesh>(null);
   const roofMaterial = useRef<MeshStandardMaterial>(null);
@@ -252,7 +220,9 @@ function CutawayShell({
   const lastRevealActive = useRef<boolean | null>(null);
 
   useFrame((_, delta) => {
-    const position = inspectorCartBody.current?.translation();
+    const position = (
+      activeFlagshipBody.current ?? inspectorCartBody.current
+    )?.translation();
 
     if (!position) {
       return;
@@ -314,7 +284,7 @@ function CutawayShell({
   return (
     <>
       <mesh castShadow position={[0, 3.38, -0.05]} receiveShadow ref={roof}>
-        <boxGeometry args={[7.45, 0.36, 6.35]} />
+        <boxGeometry args={[showroomHalfWidth * 2 + 0.35, 0.36, 6.35]} />
         <meshStandardMaterial
           color={SAFETY_ORANGE}
           flatShading
@@ -325,7 +295,7 @@ function CutawayShell({
       </mesh>
       <mesh
         castShadow
-        position={[-3.48, 2, -0.05]}
+        position={[-showroomHalfWidth + 0.07, 2, -0.05]}
         receiveShadow
         ref={leftWall}
       >
@@ -340,7 +310,7 @@ function CutawayShell({
       </mesh>
       <mesh
         castShadow
-        position={[3.48, 2, -0.05]}
+        position={[showroomHalfWidth - 0.07, 2, -0.05]}
         receiveShadow
         ref={rightWall}
       >
@@ -354,7 +324,7 @@ function CutawayShell({
         />
       </mesh>
       <mesh castShadow position={[0, 2, -2.95]} receiveShadow ref={backWall}>
-        <boxGeometry args={[7.1, 2.6, 0.3]} />
+        <boxGeometry args={[showroomHalfWidth * 2, 2.6, 0.3]} />
         <meshStandardMaterial
           color={WARM_IVORY}
           flatShading
@@ -364,9 +334,9 @@ function CutawayShell({
         />
       </mesh>
       <group ref={frontCanopy}>
-        {[-2.84, 2.84].map((x) => (
+        {[-frontPostX, frontPostX].map((x) => (
           <mesh castShadow key={x} position={[x, 2, 2.86]} receiveShadow>
-            <boxGeometry args={[1.28, 2.6, 0.3]} />
+            <boxGeometry args={[frontPostHalfWidth * 2, 2.6, 0.3]} />
             <meshStandardMaterial
               color={WARM_IVORY}
               flatShading
@@ -385,11 +355,20 @@ function CutawayShell({
 }
 
 export function OpenAiDealership({
+  activeFlagshipBody,
   inspectorCartBody,
   lineup,
   onRevealActiveChange,
+  valetTransfer,
 }: OpenAiDealershipProps) {
-  const displayPositions = getDisplayPositions(lineup.length);
+  const displayPositions = getShowroomDisplayPositions(lineup.length);
+  const showroomHalfWidth = getShowroomHalfWidth(lineup.length);
+  const compactDisplays = lineup.length >= 3;
+  const frontPostHalfWidth = compactDisplays ? 0.15 : 0.28;
+  const frontPostX = compactDisplays ? showroomHalfWidth - 0.18 : 3.15;
+  const { activeFlagshipId, phase } = valetTransfer;
+  const flagshipDriving =
+    getExperiencePhaseBehavior(phase).controlledVehicle === "active-flagship";
 
   return (
     <RigidBody
@@ -398,56 +377,70 @@ export function OpenAiDealership({
       position={SHOWROOM_POSITION}
       type="fixed"
     >
-      <CuboidCollider args={[3.45, 0.35, 0.18]} position={[0, 0.35, -2.95]} />
       <CuboidCollider
-        args={[0.18, 0.35, 2.95]}
-        position={[-3.48, 0.35, -0.05]}
+        args={[showroomHalfWidth - 0.1, 0.35, 0.18]}
+        position={[0, 0.35, -2.95]}
       />
       <CuboidCollider
         args={[0.18, 0.35, 2.95]}
-        position={[3.48, 0.35, -0.05]}
+        position={[-showroomHalfWidth + 0.07, 0.35, -0.05]}
       />
       <CuboidCollider
-        args={[0.64, 0.35, 0.18]}
-        position={[-2.84, 0.35, 2.86]}
+        args={[0.18, 0.35, 2.95]}
+        position={[showroomHalfWidth - 0.07, 0.35, -0.05]}
       />
-      <CuboidCollider args={[0.64, 0.35, 0.18]} position={[2.84, 0.35, 2.86]} />
-      {lineup.map((model, index) => (
-        <CuboidCollider
-          args={[0.95, 0.52, 1.4]}
-          key={model.id}
-          position={[displayPositions[index], 0.74, -0.9]}
-          restitution={0.72}
-        />
-      ))}
+      <CuboidCollider
+        args={[frontPostHalfWidth, 0.35, 0.18]}
+        position={[-frontPostX, 0.35, 2.86]}
+      />
+      <CuboidCollider
+        args={[frontPostHalfWidth, 0.35, 0.18]}
+        position={[frontPostX, 0.35, 2.86]}
+      />
+      {lineup.map((model, index) =>
+        model.id === activeFlagshipId && flagshipDriving ? null : (
+          <CuboidCollider
+            args={[0.95, 0.52, 1.4]}
+            key={model.id}
+            position={[displayPositions[index], 0.74, MODEL_DISPLAY_LOCAL_Z]}
+            restitution={0.72}
+          />
+        ),
+      )}
 
       <mesh receiveShadow position={[0, 0.1, -0.05]}>
-        <cylinderGeometry args={[4.15, 4.15, 0.2, 8]} />
+        <cylinderGeometry
+          args={[showroomHalfWidth + 0.6, showroomHalfWidth + 0.6, 0.2, 8]}
+        />
         <meshStandardMaterial color={FLOOR} flatShading roughness={1} />
       </mesh>
       <mesh receiveShadow position={[0, 0.23, -0.05]}>
-        <boxGeometry args={[7.1, 0.24, 5.85]} />
+        <boxGeometry args={[showroomHalfWidth * 2, 0.24, 5.85]} />
         <meshStandardMaterial color={WARM_IVORY} flatShading roughness={1} />
       </mesh>
       <mesh castShadow position={[0, 0.35, -2.95]} receiveShadow>
-        <boxGeometry args={[7.1, 0.7, 0.3]} />
+        <boxGeometry args={[showroomHalfWidth * 2, 0.7, 0.3]} />
         <meshStandardMaterial color={WARM_IVORY} flatShading roughness={1} />
       </mesh>
-      {[-3.48, 3.48].map((x) => (
+      {[-showroomHalfWidth + 0.07, showroomHalfWidth - 0.07].map((x) => (
         <mesh castShadow key={x} position={[x, 0.35, -0.05]} receiveShadow>
           <boxGeometry args={[0.3, 0.7, 5.95]} />
           <meshStandardMaterial color={WARM_IVORY} flatShading roughness={1} />
         </mesh>
       ))}
-      {[-2.84, 2.84].map((x) => (
+      {[-frontPostX, frontPostX].map((x) => (
         <mesh castShadow key={x} position={[x, 0.35, 2.86]} receiveShadow>
-          <boxGeometry args={[1.28, 0.7, 0.3]} />
+          <boxGeometry args={[frontPostHalfWidth * 2, 0.7, 0.3]} />
           <meshStandardMaterial color={WARM_IVORY} flatShading roughness={1} />
         </mesh>
       ))}
       <CutawayShell
+        activeFlagshipBody={activeFlagshipBody}
+        frontPostHalfWidth={frontPostHalfWidth}
+        frontPostX={frontPostX}
         inspectorCartBody={inspectorCartBody}
         onRevealActiveChange={onRevealActiveChange}
+        showroomHalfWidth={showroomHalfWidth}
       />
 
       {[-1.18, 1.18].map((x) => (
@@ -467,12 +460,23 @@ export function OpenAiDealership({
         <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
       </mesh>
 
+      <ValetTransferSystem
+        controller={valetTransfer}
+        displayPositions={displayPositions}
+        inspectorCartBody={inspectorCartBody}
+        lineup={lineup}
+      />
+
       {lineup.map((model, index) => (
         <ModelVehicle
+          awake={model.id === activeFlagshipId && phase === "flagship-waking"}
+          compact={compactDisplays}
           displayX={displayPositions[index]}
           key={model.id}
           model={model}
           signature={LIGHT_SIGNATURES[index % LIGHT_SIGNATURES.length]}
+          trunkOpen={model.id === activeFlagshipId && phase === "valet-stowing"}
+          visible={!(model.id === activeFlagshipId && flagshipDriving)}
         />
       ))}
     </RigidBody>
