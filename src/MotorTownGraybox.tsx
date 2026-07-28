@@ -142,7 +142,23 @@ function DestinationPlot({
   roofHeight,
 }: DestinationPlotProps) {
   return (
-    <group position={position}>
+    <RigidBody
+      colliders={false}
+      name={COLLISION_SURFACE.solidEnvironment}
+      position={position}
+      type="fixed"
+    >
+      <CylinderCollider args={[0.12, 3.15]} position={[0, 0.12, 0]} />
+      <CuboidCollider
+        args={[2.4, roofHeight / 2, 1.75]}
+        position={[0, roofHeight / 2, -0.45]}
+        restitution={0.9}
+      />
+      <CuboidCollider
+        args={[2.6, 0.28, 1.95]}
+        position={[0, roofHeight + 0.28, -0.45]}
+      />
+      <CuboidCollider args={[1.65, 0.09, 0.17]} position={[0, 0.54, 1.47]} />
       <mesh receiveShadow position={[0, 0.12, 0]}>
         <cylinderGeometry args={[3.15, 3.15, 0.24, 6]} />
         <meshStandardMaterial color="#c7b994" flatShading roughness={1} />
@@ -169,7 +185,7 @@ function DestinationPlot({
         <boxGeometry args={[3.3, 0.18, 0.34]} />
         <meshStandardMaterial color={accent} flatShading roughness={1} />
       </mesh>
-    </group>
+    </RigidBody>
   );
 }
 
@@ -191,42 +207,6 @@ function CentralLandmarkPlot() {
           <cylinderGeometry args={[1.8, 2.15, 0.38, 12]} />
           <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
         </mesh>
-        <mesh castShadow position={[0, 1.52, 0]}>
-          <cylinderGeometry args={[0.46, 0.68, 1.75, 7]} />
-          <meshStandardMaterial color={WARM_IVORY} flatShading roughness={1} />
-        </mesh>
-        <mesh
-          castShadow
-          position={[0, 2.1, 0.32]}
-          rotation={[-0.2, 0, 0]}
-          scale={[0.78, 1.28, 0.9]}
-        >
-          <dodecahedronGeometry args={[0.72, 0]} />
-          <meshStandardMaterial
-            color={SAFETY_ORANGE}
-            flatShading
-            roughness={1}
-          />
-        </mesh>
-        <mesh castShadow position={[0, 1.63, 0.78]} scale={[1.1, 0.68, 0.9]}>
-          <dodecahedronGeometry args={[0.6, 0]} />
-          <meshStandardMaterial
-            color={SAFETY_ORANGE}
-            flatShading
-            roughness={1}
-          />
-        </mesh>
-        {[-0.29, 0.29].map((x) => (
-          <mesh
-            key={x}
-            position={[x, 1.52, 1.25]}
-            rotation={[Math.PI / 2, 0, 0]}
-            scale={[1, 0.42, 1]}
-          >
-            <cylinderGeometry args={[0.17, 0.2, 0.08, 8]} />
-            <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
-          </mesh>
-        ))}
       </group>
     </RigidBody>
   );
@@ -239,16 +219,28 @@ type TreeProps = {
 
 function GrayboxTree({ position, scale = 1 }: TreeProps) {
   return (
-    <group position={position} scale={scale}>
-      <mesh castShadow position={[0, 0.55, 0]}>
-        <boxGeometry args={[0.3, 1.1, 0.3]} />
-        <meshStandardMaterial color="#66533b" flatShading roughness={1} />
-      </mesh>
-      <mesh castShadow position={[0, 1.4, 0]}>
-        <coneGeometry args={[0.78, 1.8, 5]} />
-        <meshStandardMaterial color={FADED_GREEN} flatShading roughness={1} />
-      </mesh>
-    </group>
+    <RigidBody
+      colliders={false}
+      name={COLLISION_SURFACE.solidEnvironment}
+      position={position}
+      type="fixed"
+    >
+      <CylinderCollider
+        args={[1.15 * scale, 0.7 * scale]}
+        position={[0, 1.15 * scale, 0]}
+        restitution={0.9}
+      />
+      <group scale={scale}>
+        <mesh castShadow position={[0, 0.55, 0]}>
+          <boxGeometry args={[0.3, 1.1, 0.3]} />
+          <meshStandardMaterial color="#66533b" flatShading roughness={1} />
+        </mesh>
+        <mesh castShadow position={[0, 1.4, 0]}>
+          <coneGeometry args={[0.78, 1.8, 5]} />
+          <meshStandardMaterial color={FADED_GREEN} flatShading roughness={1} />
+        </mesh>
+      </group>
+    </RigidBody>
   );
 }
 
@@ -278,10 +270,23 @@ function DistantSilhouettes() {
         [5.6, 1.7, 3],
         [10.2, 2.4, 4.4],
       ].map(([x, height, width]) => (
-        <mesh castShadow key={x} position={[x, height / 2, 0]}>
-          <boxGeometry args={[width, height, 2]} />
-          <meshStandardMaterial color="#d8c8a8" flatShading roughness={1} />
-        </mesh>
+        <RigidBody
+          colliders={false}
+          key={x}
+          name={COLLISION_SURFACE.solidEnvironment}
+          position={[x, 0, 0]}
+          type="fixed"
+        >
+          <CuboidCollider
+            args={[width / 2, height / 2, 1]}
+            position={[0, height / 2, 0]}
+            restitution={0.9}
+          />
+          <mesh castShadow position={[0, height / 2, 0]}>
+            <boxGeometry args={[width, height, 2]} />
+            <meshStandardMaterial color="#d8c8a8" flatShading roughness={1} />
+          </mesh>
+        </RigidBody>
       ))}
     </group>
   );

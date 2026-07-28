@@ -7,6 +7,7 @@ export type DrivingState =
 
 export const COLLISION_SURFACE = {
   centralLandmark: "central-landmark",
+  solidEnvironment: "solid-environment",
   townBoundary: "drive-boundary",
 } as const;
 
@@ -45,6 +46,7 @@ export function isCartCollisionSurface(
 ): name is (typeof COLLISION_SURFACE)[keyof typeof COLLISION_SURFACE] {
   return (
     name === COLLISION_SURFACE.townBoundary ||
-    name === COLLISION_SURFACE.centralLandmark
+    name === COLLISION_SURFACE.centralLandmark ||
+    name === COLLISION_SURFACE.solidEnvironment
   );
 }

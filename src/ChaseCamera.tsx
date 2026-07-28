@@ -5,16 +5,21 @@ import { Vector3 } from "three";
 import { getHeadingBasis } from "./driving";
 
 type ChaseCameraProps = {
+  active: boolean;
   body: RefObject<RapierRigidBody | null>;
   yaw: RefObject<number>;
 };
 
-export function ChaseCamera({ body, yaw }: ChaseCameraProps) {
+export function ChaseCamera({ active, body, yaw }: ChaseCameraProps) {
   const cameraTarget = useRef(new Vector3());
   const desiredCameraPosition = useRef(new Vector3());
   const { camera } = useThree();
 
   useFrame((_, frameDelta) => {
+    if (!active) {
+      return;
+    }
+
     const rigidBody = body.current;
 
     if (!rigidBody) {

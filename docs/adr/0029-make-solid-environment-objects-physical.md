@@ -1,0 +1,3 @@
+# Make solid environment objects physical
+
+Every solid environment object present while a visitor controls a vehicle—including buildings, trees, barriers, landmarks, and backdrop structures—will have a simplified fixed collision proxy that follows its visible footprint. Low road curbs and edge blocks remain visible but non-colliding route guidance so visitors can leave the road freely; road markings, guidance graphics, particles, lighting, fog, and other explicitly non-solid presentation may also remain visual-only. Render meshes remain separate from physics shapes so collision stays predictable and inexpensive.

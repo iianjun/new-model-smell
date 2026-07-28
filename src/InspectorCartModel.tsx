@@ -1,24 +1,47 @@
 import { useFrame } from "@react-three/fiber";
 import { type RefObject, useRef } from "react";
-import { type Group, MathUtils, type Object3D } from "three";
+import {
+  type Group,
+  MathUtils,
+  type MeshStandardMaterial,
+  type Object3D,
+} from "three";
 import { INSPECTOR_CART_TUNING } from "./driving";
+import {
+  INSPECTOR_CART_WHEEL_CENTER_Y,
+  INSPECTOR_CART_WHEEL_RADIUS,
+} from "./inspectorCartGeometry";
 import type { DrivingInput } from "./useDrivingInput";
 
 type InspectorCartModelProps = {
+  awake: boolean;
   input: RefObject<DrivingInput>;
   speed: RefObject<number>;
 };
 
-export function InspectorCartModel({ input, speed }: InspectorCartModelProps) {
+export function InspectorCartModel({
+  awake,
+  input,
+  speed,
+}: InspectorCartModelProps) {
   const cartBody = useRef<Group>(null);
   const clipboard = useRef<Object3D>(null);
   const smellDetector = useRef<Group>(null);
+  const wakeLight = useRef<MeshStandardMaterial>(null);
+  const wakeProgress = useRef(0);
 
   useFrame(({ clock }, delta) => {
     const body = cartBody.current;
     const detector = smellDetector.current;
     const clipboardMesh = clipboard.current;
     const currentSpeed = speed.current;
+    wakeProgress.current = MathUtils.damp(
+      wakeProgress.current,
+      awake ? 1 : 0,
+      7,
+      delta,
+    );
+    const wake = wakeProgress.current;
     const movement = Math.min(
       Math.abs(currentSpeed) / INSPECTOR_CART_TUNING.forwardSpeed,
       1,
@@ -26,6 +49,7 @@ export function InspectorCartModel({ input, speed }: InspectorCartModelProps) {
 
     if (body) {
       const wobble = Math.sin(clock.elapsedTime * 10) * 0.035 * movement;
+      body.position.y = Math.sin(wake * Math.PI) * 0.11;
       body.rotation.z = MathUtils.damp(body.rotation.z, wobble, 9, delta);
       body.rotation.x = MathUtils.damp(
         body.rotation.x,
@@ -36,12 +60,16 @@ export function InspectorCartModel({ input, speed }: InspectorCartModelProps) {
     }
 
     if (detector) {
-      detector.rotation.y += delta * (1.4 + movement * 3.2);
+      detector.rotation.y += delta * wake * (2.8 + movement * 3.2);
     }
 
     if (clipboardMesh) {
       clipboardMesh.rotation.z =
         -0.12 + Math.sin(clock.elapsedTime * 7) * 0.055 * movement;
+    }
+
+    if (wakeLight.current) {
+      wakeLight.current.emissiveIntensity = wake * 2.2;
     }
   });
 
@@ -69,10 +97,17 @@ export function InspectorCartModel({ input, speed }: InspectorCartModelProps) {
           <mesh
             castShadow
             key={`${x}-${z}`}
-            position={[x, -0.27, z]}
+            position={[x, INSPECTOR_CART_WHEEL_CENTER_Y, z]}
             rotation={[0, 0, Math.PI / 2]}
           >
-            <cylinderGeometry args={[0.3, 0.3, 0.24, 8]} />
+            <cylinderGeometry
+              args={[
+                INSPECTOR_CART_WHEEL_RADIUS,
+                INSPECTOR_CART_WHEEL_RADIUS,
+                0.24,
+                8,
+              ]}
+            />
             <meshStandardMaterial color="#252723" flatShading roughness={1} />
           </mesh>
         )),
@@ -111,6 +146,17 @@ export function InspectorCartModel({ input, speed }: InspectorCartModelProps) {
       <mesh castShadow position={[0, 0.1, -0.98]} rotation={[0, 0, 0]}>
         <boxGeometry args={[1.18, 0.32, 0.12]} />
         <meshStandardMaterial color="#ef6d32" flatShading roughness={1} />
+      </mesh>
+      <mesh position={[0, 0.14, -1.05]}>
+        <boxGeometry args={[0.98, 0.12, 0.035]} />
+        <meshStandardMaterial
+          color="#f5c85e"
+          emissive="#f5c85e"
+          emissiveIntensity={0}
+          flatShading
+          ref={wakeLight}
+          roughness={1}
+        />
       </mesh>
       <mesh
         castShadow

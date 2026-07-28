@@ -4,10 +4,20 @@ import { Suspense, useEffect } from "react";
 import type { DrivingTelemetry } from "./driving";
 import { InspectorCart } from "./InspectorCart";
 import { MotorTownGraybox } from "./MotorTownGraybox";
+import { OpeningSequence } from "./OpeningSequence";
+import type { OpeningEntry, OpeningStage } from "./opening";
+import { RoadGuidance } from "./RoadGuidance";
 
 type MotorTownCanvasProps = {
+  isDriving: boolean;
+  onOpeningComplete: () => void;
+  onOpeningStage: (stage: OpeningStage) => void;
   onReady: () => void;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
+  openingActive: boolean;
+  openingEntry: OpeningEntry;
+  openingStage: OpeningStage;
+  skipRequested: boolean;
 };
 
 function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
@@ -20,7 +30,17 @@ function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
   return null;
 }
 
-function MotorTownWorld({ onReady, onTelemetry }: MotorTownCanvasProps) {
+function MotorTownWorld({
+  isDriving,
+  onOpeningComplete,
+  onOpeningStage,
+  onReady,
+  onTelemetry,
+  openingActive,
+  openingEntry,
+  openingStage,
+  skipRequested,
+}: MotorTownCanvasProps) {
   return (
     <>
       <ambientLight intensity={1.8} />
@@ -42,7 +62,21 @@ function MotorTownWorld({ onReady, onTelemetry }: MotorTownCanvasProps) {
       <Suspense fallback={null}>
         <Physics colliders={false} gravity={[0, -13, 0]}>
           <MotorTownGraybox />
-          <InspectorCart onTelemetry={onTelemetry} />
+          <InspectorCart
+            awake={isDriving || openingStage === "wake"}
+            cameraEnabled={isDriving}
+            controlsEnabled={isDriving}
+            onTelemetry={onTelemetry}
+          />
+          <OpeningSequence
+            active={openingActive}
+            entry={openingEntry}
+            isDriving={isDriving}
+            onComplete={onOpeningComplete}
+            onStage={onOpeningStage}
+            skipRequested={skipRequested}
+          />
+          <RoadGuidance visible={isDriving} />
           <RuntimeReady onReady={onReady} />
         </Physics>
       </Suspense>

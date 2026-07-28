@@ -26,7 +26,8 @@ function isEditableTarget(target: EventTarget | null) {
   );
 }
 
-export function useDrivingInput() {
+export function useDrivingInput(enabled: boolean) {
+  const enabledRef = useRef(enabled);
   const input = useRef<DrivingInput>({
     handbrake: false,
     steer: 0,
@@ -38,7 +39,33 @@ export function useDrivingInput() {
   const reverseAlarmTimer = useRef<number | undefined>(undefined);
   const reverseAlarmContext = useRef<AudioContext | null>(null);
 
+  enabledRef.current = enabled;
+
   useEffect(() => {
+    if (enabled) {
+      return;
+    }
+
+    pressedKeys.current.clear();
+    handbrakeUntil.current = 0;
+    input.current = {
+      handbrake: false,
+      steer: 0,
+      throttle: 0,
+    };
+    window.clearTimeout(handbrakeTimer.current);
+    window.clearInterval(reverseAlarmTimer.current);
+    reverseAlarmTimer.current = undefined;
+  }, [enabled]);
+
+  useEffect(() => {
+    pressedKeys.current.clear();
+    input.current = {
+      handbrake: false,
+      steer: 0,
+      throttle: 0,
+    };
+
     const soundReverseAlarm = () => {
       try {
         let context = reverseAlarmContext.current;
@@ -94,6 +121,16 @@ export function useDrivingInput() {
     };
 
     const updateInput = () => {
+      if (!enabledRef.current) {
+        input.current = {
+          handbrake: false,
+          steer: 0,
+          throttle: 0,
+        };
+        stopReverseAlarm();
+        return;
+      }
+
       const pressed = pressedKeys.current;
       const accelerate = pressed.has("KeyW") || pressed.has("ArrowUp");
       const reverse = pressed.has("KeyS") || pressed.has("ArrowDown");
@@ -107,7 +144,7 @@ export function useDrivingInput() {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!DRIVING_KEYS.has(event.code)) {
+      if (!enabledRef.current || !DRIVING_KEYS.has(event.code)) {
         return;
       }
 
@@ -131,7 +168,7 @@ export function useDrivingInput() {
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (!DRIVING_KEYS.has(event.code)) {
+      if (!enabledRef.current || !DRIVING_KEYS.has(event.code)) {
         return;
       }
 

@@ -14,6 +14,10 @@ import {
   isCartCollisionSurface,
 } from "./driving";
 import { InspectorCartModel } from "./InspectorCartModel";
+import {
+  INSPECTOR_CART_COLLIDER_CENTER_Y,
+  INSPECTOR_CART_COLLIDER_HALF_HEIGHT,
+} from "./inspectorCartGeometry";
 import { useDrivingInput } from "./useDrivingInput";
 
 const START_POSITION = { x: 0, y: 0.72, z: 7.2 };
@@ -21,6 +25,9 @@ const COLLISION_GRACE_MS = 650;
 const TRAPPED_SPEED = 0.85;
 
 type InspectorCartProps = {
+  awake: boolean;
+  cameraEnabled: boolean;
+  controlsEnabled: boolean;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
 };
 
@@ -35,11 +42,16 @@ function quaternionFromYaw(yaw: number) {
   };
 }
 
-export function InspectorCart({ onTelemetry }: InspectorCartProps) {
+export function InspectorCart({
+  awake,
+  cameraEnabled,
+  controlsEnabled,
+  onTelemetry,
+}: InspectorCartProps) {
   const body = useRef<RapierRigidBody>(null);
   const speed = useRef(0);
   const yaw = useRef(0);
-  const input = useDrivingInput();
+  const input = useDrivingInput(controlsEnabled);
   const collisionPressureStartedAt = useRef(0);
   const lastCollisionAt = useRef(0);
   const activeCollisionContacts = useRef(0);
@@ -271,14 +283,14 @@ export function InspectorCart({ onTelemetry }: InspectorCartProps) {
         restitution={0.92}
       >
         <CuboidCollider
-          args={[0.68, 0.5, 0.94]}
+          args={[0.68, INSPECTOR_CART_COLLIDER_HALF_HEIGHT, 0.94]}
           friction={0.2}
-          position={[0, 0.18, 0]}
+          position={[0, INSPECTOR_CART_COLLIDER_CENTER_Y, 0]}
           restitution={0.92}
         />
-        <InspectorCartModel input={input} speed={speed} />
+        <InspectorCartModel awake={awake} input={input} speed={speed} />
       </RigidBody>
-      <ChaseCamera body={body} yaw={yaw} />
+      <ChaseCamera active={cameraEnabled} body={body} yaw={yaw} />
     </>
   );
 }
