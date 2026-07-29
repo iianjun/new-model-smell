@@ -4,17 +4,17 @@
 
 **Blocked by:** 07 — Run the Active Flagship at the Dyno Lab.
 
-**Status:** ready-for-agent
+**Status:** complete
 
-- [ ] The exposed Dyno Sheet has a generous pointer hit area and drag tolerance suitable for mouse and trackpad use.
-- [ ] Pull distance visibly unfolds the paper toward the camera and opens the dossier only after a clear completion threshold.
-- [ ] The Model Dossier is rendered as sharp React DOM content rather than pixelated 3D text.
-- [ ] The dossier identifies the Active Flagship, its Public Availability Date, and its current Release Age.
-- [ ] Every Benchmark Record includes benchmark name and version, score and unit, evaluator, evaluation date, source link, provenance, and relevant caveats.
-- [ ] Rival results appear as direct comparisons only when evaluation source, version, and conditions match.
-- [ ] When comparable rival evidence is unavailable, the Active Flagship appears alone without a synthetic overall score.
-- [ ] Performing the Dyno run never changes the curated benchmark values shown in the dossier.
-- [ ] Source links are usable from the dossier without corrupting the preserved world state.
-- [ ] While the dossier is open, vehicle controls are suspended and the Active Flagship, vehicle transform, Dyno state, and camera context are preserved.
-- [ ] Closing the dossier folds and retracts the paper into the Dyno and resumes the same Active Flagship at the same location.
-- [ ] Browser tests cover a comparable fixture, a solo non-comparable fixture, a non-first Active Flagship, and successful return to driving.
+- [x] The exposed Dyno Sheet has a generous pointer hit area and drag tolerance suitable for mouse and trackpad use.
+- [x] Pull distance visibly unfolds the paper toward the camera and opens the dossier only after a clear completion threshold.
+- [x] The Model Dossier is rendered as sharp React DOM content rather than pixelated 3D text.
+- [x] The dossier identifies the Active Flagship, its Public Availability Date, and its current Release Age.
+- [x] Every Benchmark Record includes benchmark name and version, score and unit, evaluator, evaluation date, source link, provenance, and relevant caveats.
+- [x] Rival results appear as direct comparisons only when evaluation source, version, and conditions match.
+- [x] When comparable rival evidence is unavailable, the Active Flagship appears alone without a synthetic overall score.
+- [x] Performing the Dyno run never changes the curated benchmark values shown in the dossier.
+- [x] Source links are usable from the dossier without corrupting the preserved world state.
+- [x] While the dossier is open, vehicle controls are suspended and the Active Flagship, vehicle transform, Dyno state, and camera context are preserved.
+- [x] Closing the dossier folds and retracts the paper into the Dyno and resumes the same Active Flagship at the same location.
+- [x] Browser tests cover a comparable fixture, a solo non-comparable fixture, a non-first Active Flagship, and successful return to driving.

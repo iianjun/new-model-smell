@@ -1,3 +1,5 @@
+import type { RuntimeBenchmarkRecordFixture } from "./benchmark.js";
+
 export type RuntimeWorldPosition = {
   x: number;
   y: number;
@@ -5,6 +7,7 @@ export type RuntimeWorldPosition = {
 };
 
 export type RuntimeFlagshipModelFixture = {
+  benchmarkRecords?: readonly RuntimeBenchmarkRecordFixture[];
   id: string;
   name: string;
   provenance: {

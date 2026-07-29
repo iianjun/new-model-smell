@@ -1,8 +1,9 @@
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Physics, type RapierRigidBody } from "@react-three/rapier";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ActiveFlagship, FLAGSHIP_INITIAL_YAW } from "./ActiveFlagship";
 import { DynoLab } from "./DynoLab";
+import { type DossierController, getDossierPhaseBehavior } from "./dossier";
 import type { DrivingTelemetry } from "./driving";
 import { type DynoRuntimeState, INITIAL_DYNO_RUNTIME_STATE } from "./dyno";
 import {
@@ -26,6 +27,7 @@ import { MotorTownGraybox } from "./MotorTownGraybox";
 import { OpeningSequence } from "./OpeningSequence";
 import type { OpeningEntry, OpeningStage } from "./opening";
 import { RoadGuidance } from "./RoadGuidance";
+import { publishDossierRuntimeTestState } from "./runtimeTestState";
 import {
   getFlagshipDisplayWorldPosition,
   getShowroomDisplayPositions,
@@ -34,6 +36,7 @@ import { useDrivingInput } from "./useDrivingInput";
 
 type MotorTownCanvasProps = {
   activeFlagship: FlagshipModel | null;
+  dossier: DossierController;
   experience: ExperienceState;
   initialCartPosition: WorldPosition;
   onDriveOutComplete: () => void;
@@ -63,8 +66,44 @@ function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
   return null;
 }
 
+function DossierRuntimeProbe({
+  activeFlagshipBody,
+}: {
+  activeFlagshipBody: React.RefObject<RapierRigidBody | null>;
+}) {
+  const camera = useThree((state) => state.camera);
+
+  useFrame(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    const position = activeFlagshipBody.current?.translation();
+
+    if (!position) {
+      return;
+    }
+
+    publishDossierRuntimeTestState({
+      activeFlagshipPosition: {
+        x: position.x,
+        y: position.y,
+        z: position.z,
+      },
+      cameraPosition: {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
+      },
+    });
+  });
+
+  return null;
+}
+
 function MotorTownWorld({
   activeFlagship,
+  dossier,
   experience,
   initialCartPosition,
   onDriveOutComplete,
@@ -88,11 +127,13 @@ function MotorTownWorld({
   const dynoRunIntensity = useRef(0);
   const [dynoState, setDynoState] = useState(INITIAL_DYNO_RUNTIME_STATE);
   const phaseBehavior = getExperiencePhaseBehavior(experience.phase);
+  const dossierBehavior = getDossierPhaseBehavior(dossier.phase);
   const openingCompleted = phaseBehavior.openingCompleted;
   const inspectorControlsEnabled =
     phaseBehavior.controlledVehicle === "inspector-cart";
+  const flagshipPresent = phaseBehavior.controlledVehicle === "active-flagship";
   const flagshipControlsEnabled =
-    phaseBehavior.controlledVehicle === "active-flagship";
+    flagshipPresent && !dossierBehavior.controlsSuspended;
   const flagshipInput = useDrivingInput(flagshipControlsEnabled);
   const updateDynoState = useCallback(
     (state: DynoRuntimeState) => {
@@ -157,10 +198,10 @@ function MotorTownWorld({
             onTelemetry={onTelemetry}
             presentation={phaseBehavior.cartPresentation}
           />
-          {activeFlagship && flagshipControlsEnabled ? (
+          {activeFlagship && flagshipPresent ? (
             <ActiveFlagship
               body={activeFlagshipBody}
-              controlsEnabled
+              controlsEnabled={flagshipControlsEnabled}
               dynoRunIntensity={dynoRunIntensity}
               initialYaw={activeFlagshipYaw}
               initialPosition={activeFlagshipPosition}
@@ -181,6 +222,7 @@ function MotorTownWorld({
               activeFlagship && experience.driveOutComplete,
             )}
             activeFlagshipBody={activeFlagshipBody}
+            dossier={dossier}
             input={flagshipInput}
             inspectorCartBody={inspectorCartBody}
             onStateChange={updateDynoState}
@@ -195,10 +237,11 @@ function MotorTownWorld({
             skipRequested={skipRequested}
             trackedCompanies={trackedCompanies}
             trackedVehicleBody={
-              flagshipControlsEnabled ? activeFlagshipBody : inspectorCartBody
+              flagshipPresent ? activeFlagshipBody : inspectorCartBody
             }
           />
           <RoadGuidance visible={inspectorControlsEnabled} />
+          <DossierRuntimeProbe activeFlagshipBody={activeFlagshipBody} />
           <RuntimeReady onReady={onReady} />
         </Physics>
       </Suspense>

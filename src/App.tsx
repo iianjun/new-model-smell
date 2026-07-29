@@ -9,6 +9,11 @@ import {
   useState,
 } from "react";
 import "./App.css";
+import {
+  type DossierController,
+  dossierReducer,
+  getDossierPhaseBehavior,
+} from "./dossier";
 import { type DrivingTelemetry, INITIAL_DRIVING_TELEMETRY } from "./driving";
 import {
   type DynoRuntimeState,
@@ -32,11 +37,13 @@ import {
   type TrackedCompany,
   type WorldPosition,
 } from "./flagshipLineup";
+import { ModelDossier } from "./ModelDossier";
 import {
   INITIAL_OPENING_STAGE,
   type OpeningEntry,
   type OpeningStage,
 } from "./opening";
+import { publishDossierRuntimeTestState } from "./runtimeTestState";
 import { ShowroomDirectory } from "./ShowroomDirectory";
 
 const MotorTownCanvas = lazy(() => import("./MotorTownCanvas"));
@@ -139,7 +146,7 @@ function RuntimeInterface({
   return (
     <div className="runtime-interface">
       <header className="title-lockup">
-        <p>Motor Town · Runtime 07</p>
+        <p>Motor Town · Runtime 08</p>
         <h1>New Model Motors</h1>
       </header>
 
@@ -231,8 +238,8 @@ function RuntimeInterface({
       )}
 
       <p className="runtime-caption">
-        Player-Operated Dyno
-        <span>07</span>
+        Dyno Sheet Dossier
+        <span>08</span>
       </p>
     </div>
   );
@@ -307,6 +314,8 @@ function App() {
   const [dynoState, setDynoState] = useState<DynoRuntimeState>(
     INITIAL_DYNO_RUNTIME_STATE,
   );
+  const [dossierPhase, dispatchDossier] = useReducer(dossierReducer, "closed");
+  const dossierBehavior = getDossierPhaseBehavior(dossierPhase);
   const [showroomVisible, setShowroomVisible] = useState(() =>
     isInOpenAiShowroomRevealZone(initialCartPosition),
   );
@@ -331,6 +340,26 @@ function App() {
   const updateTelemetry = useCallback(
     (nextTelemetry: DrivingTelemetry) => setTelemetry(nextTelemetry),
     [],
+  );
+  const openDossier = useCallback(() => {
+    dispatchDossier("open-requested");
+  }, []);
+  const closeDossier = useCallback(() => {
+    dispatchDossier("close-requested");
+  }, []);
+  const completeDossierOpening = useCallback(() => {
+    dispatchDossier("opening-finished");
+  }, []);
+  const completeDossierRetraction = useCallback(() => {
+    dispatchDossier("retraction-finished");
+  }, []);
+  const dossier = useMemo<DossierController>(
+    () => ({
+      completeRetraction: completeDossierRetraction,
+      open: openDossier,
+      phase: dossierPhase,
+    }),
+    [completeDossierRetraction, dossierPhase, openDossier],
   );
 
   useEffect(() => {
@@ -362,12 +391,19 @@ function App() {
     return () => window.removeEventListener("keydown", skipOpening);
   }, []);
 
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      publishDossierRuntimeTestState({ phase: dossierPhase });
+    }
+  }, [dossierPhase]);
+
   return (
     <main className="app-shell">
       <div className="world-canvas" aria-hidden="true">
         <Suspense fallback={null}>
           <MotorTownCanvas
             activeFlagship={activeFlagship}
+            dossier={dossier}
             experience={experience}
             initialCartPosition={initialCartPosition}
             onDriveOutComplete={completeDriveOut}
@@ -390,16 +426,26 @@ function App() {
       </div>
 
       {isReady ? (
-        <RuntimeInterface
-          activeFlagship={activeFlagship}
-          dynoState={dynoState}
-          experience={experience}
-          openingEntry={openingEntry}
-          openingStage={openingStage}
-          openAiFlagshipLineup={openAiFlagshipLineup}
-          showroomVisible={showroomVisible}
-          telemetry={telemetry}
-        />
+        <>
+          <RuntimeInterface
+            activeFlagship={activeFlagship}
+            dynoState={dynoState}
+            experience={experience}
+            openingEntry={openingEntry}
+            openingStage={openingStage}
+            openAiFlagshipLineup={openAiFlagshipLineup}
+            showroomVisible={showroomVisible}
+            telemetry={telemetry}
+          />
+          {activeFlagship && dossierBehavior.mounted ? (
+            <ModelDossier
+              activeFlagship={activeFlagship}
+              onClose={closeDossier}
+              onOpeningComplete={completeDossierOpening}
+              phase={dossierPhase}
+            />
+          ) : null}
+        </>
       ) : (
         <LoadingSurface />
       )}
