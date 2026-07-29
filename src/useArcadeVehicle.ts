@@ -1,15 +1,24 @@
-import { useFrame } from "@react-three/fiber";
-import type { RapierRigidBody } from "@react-three/rapier";
+import {
+  type RapierRigidBody,
+  useBeforePhysicsStep,
+} from "@react-three/rapier";
 import { type RefObject, useRef } from "react";
 import { MathUtils } from "three";
 import {
   type ArcadeVehicleTuning,
   type DrivingTelemetry,
   getHeadingBasis,
+  getNavigationTelemetry,
   isCartCollisionSurface,
+  type NavigationTarget,
+  PHYSICS_TIME_STEP,
 } from "./driving";
 import type { WorldPosition } from "./flagshipLineup";
-import { type DrivingInput, useDrivingInput } from "./useDrivingInput";
+import {
+  consumeHandbrakeStep,
+  type DrivingInput,
+  useDrivingInput,
+} from "./useDrivingInput";
 
 const COLLISION_GRACE_MS = 650;
 const TRAPPED_SPEED = 0.85;
@@ -32,6 +41,10 @@ type ArcadeVehicleMotionProps = {
   initialYaw?: number;
   input?: RefObject<DrivingInput>;
   movementEnabled?: boolean;
+  navigation?: {
+    getTargetPosition: (position: WorldPosition) => WorldPosition;
+    target: NavigationTarget;
+  };
   onTelemetry: (telemetry: DrivingTelemetry) => void;
   tuning: ArcadeVehicleTuning;
 };
@@ -43,6 +56,7 @@ export function useArcadeVehicle({
   initialYaw = 0,
   input: externalInput,
   movementEnabled = true,
+  navigation,
   onTelemetry,
   tuning,
 }: ArcadeVehicleMotionProps) {
@@ -60,7 +74,10 @@ export function useArcadeVehicle({
   const lastTelemetryAt = useRef(0);
   const lastTelemetry = useRef<DrivingTelemetry | null>(null);
 
-  useFrame((_, frameDelta) => {
+  useBeforePhysicsStep(() => {
+    const controls = input.current;
+    const handbrake = consumeHandbrakeStep(controls);
+
     if (!controlsEnabled || !movementEnabled) {
       speed.current = 0;
       return;
@@ -73,11 +90,11 @@ export function useArcadeVehicle({
     }
 
     const now = performance.now();
-    const delta = Math.min(frameDelta, 0.05);
-    const controls = input.current;
+    const delta = PHYSICS_TIME_STEP;
     const position = rigidBody.translation();
     const velocity = rigidBody.linvel();
     const heading = getHeadingBasis(yaw.current);
+
     let forwardSpeed =
       velocity.x * heading.forwardX + velocity.z * heading.forwardZ;
 
@@ -88,9 +105,7 @@ export function useArcadeVehicle({
           : controls.throttle < 0
             ? -tuning.reverseSpeed
             : 0;
-      const handbrakeScale = controls.handbrake
-        ? tuning.handbrakeSpeedScale
-        : 1;
+      const handbrakeScale = handbrake ? tuning.handbrakeSpeedScale : 1;
       const accelerationRate =
         controls.throttle === 0 ? tuning.coastingRate : tuning.accelerationRate;
       const accelerationBlend = 1 - Math.exp(-accelerationRate * delta);
@@ -102,9 +117,7 @@ export function useArcadeVehicle({
 
       const lateralSpeed =
         velocity.x * heading.rightX + velocity.z * heading.rightZ;
-      const lateralGrip = controls.handbrake
-        ? tuning.handbrakeGrip
-        : tuning.lateralGrip;
+      const lateralGrip = handbrake ? tuning.handbrakeGrip : tuning.lateralGrip;
       const retainedLateralSpeed =
         lateralSpeed * Math.exp(-lateralGrip * delta);
 
@@ -115,9 +128,7 @@ export function useArcadeVehicle({
           tuning.minimumSteeringAuthority,
           1,
         );
-        const handbrakeSteering = controls.handbrake
-          ? tuning.handbrakeSteering
-          : 1;
+        const handbrakeSteering = handbrake ? tuning.handbrakeSteering : 1;
         yaw.current +=
           controls.steer *
           direction *
@@ -212,8 +223,19 @@ export function useArcadeVehicle({
       recoveryArmed.current = true;
     }
 
+    const navigationTargetPosition = navigation?.getTargetPosition(position);
+    const navigationTelemetry =
+      navigation && navigationTargetPosition
+        ? getNavigationTelemetry(
+            position,
+            yaw.current,
+            navigation.target,
+            navigationTargetPosition,
+          )
+        : undefined;
     const telemetry: DrivingTelemetry = {
-      state: controls.handbrake
+      navigation: navigationTelemetry,
+      state: handbrake
         ? "handbrake"
         : now < recoveryUntil.current
           ? "recovery"
@@ -225,7 +247,13 @@ export function useArcadeVehicle({
     };
     const previousTelemetry = lastTelemetry.current;
     const telemetryChanged =
-      !previousTelemetry || previousTelemetry.state !== telemetry.state;
+      !previousTelemetry ||
+      previousTelemetry.state !== telemetry.state ||
+      previousTelemetry.navigation?.direction !==
+        telemetry.navigation?.direction ||
+      previousTelemetry.navigation?.distanceMeters !==
+        telemetry.navigation?.distanceMeters ||
+      previousTelemetry.navigation?.target !== telemetry.navigation?.target;
 
     if (telemetryChanged && now - lastTelemetryAt.current >= 80) {
       lastTelemetry.current = telemetry;

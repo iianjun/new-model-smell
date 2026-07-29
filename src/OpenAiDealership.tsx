@@ -364,8 +364,8 @@ export function OpenAiDealership({
   const displayPositions = getShowroomDisplayPositions(lineup.length);
   const showroomHalfWidth = getShowroomHalfWidth(lineup.length);
   const compactDisplays = lineup.length >= 3;
-  const frontPostHalfWidth = compactDisplays ? 0.15 : 0.28;
-  const frontPostX = compactDisplays ? showroomHalfWidth - 0.18 : 3.15;
+  const frontPostHalfWidth = compactDisplays ? 0.15 : 0.18;
+  const frontPostX = showroomHalfWidth - 0.18;
   const { activeFlagshipId, phase } = valetTransfer;
   const flagshipDriving =
     getExperiencePhaseBehavior(phase).controlledVehicle === "active-flagship";

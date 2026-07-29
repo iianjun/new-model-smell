@@ -3,9 +3,8 @@ import { AUDIO_RUNTIME_ASSETS } from "./assetCatalog";
 
 export type MotorTownAudioCue = keyof typeof AUDIO_RUNTIME_ASSETS;
 
-function safelyPlay(audio: HTMLAudioElement) {
+function playWithoutBlocking(audio: HTMLAudioElement) {
   try {
-    audio.currentTime = 0;
     void audio.play().catch(() => {
       // Audio is progressive enhancement. Browser policy and decode failures
       // must never become application-state failures.
@@ -13,6 +12,23 @@ function safelyPlay(audio: HTMLAudioElement) {
   } catch {
     // Some browsers throw synchronously before returning a play promise.
   }
+}
+
+function safelyPlay(audio: HTMLAudioElement) {
+  audio.currentTime = 0;
+  playWithoutBlocking(audio);
+}
+
+function safelyResume(audio: HTMLAudioElement) {
+  playWithoutBlocking(audio);
+}
+
+function stopLoop(audio: HTMLAudioElement) {
+  audio.pause();
+  audio.currentTime = 0;
+  audio.loop = false;
+  audio.playbackRate = 1;
+  audio.volume = 0.32;
 }
 
 export function useProgressiveAudio() {
@@ -39,6 +55,31 @@ export function useProgressiveAudio() {
     (cue: MotorTownAudioCue) => {
       if (enabledRef.current) {
         safelyPlay(getAudio(cue));
+      }
+    },
+    [getAudio],
+  );
+
+  const setDynoRunIntensity = useCallback(
+    (active: boolean, intensity: number) => {
+      const existing = audioByCue.current.get("dyno");
+
+      if (!active || !enabledRef.current) {
+        if (existing?.loop) {
+          stopLoop(existing);
+        }
+
+        return;
+      }
+
+      const audio = getAudio("dyno");
+      const normalizedIntensity = Math.min(1, Math.max(0, intensity));
+      audio.loop = true;
+      audio.volume = 0.12 + normalizedIntensity * 0.28;
+      audio.playbackRate = 0.7 + normalizedIntensity * 1.1;
+
+      if (audio.paused) {
+        safelyResume(audio);
       }
     },
     [getAudio],
@@ -76,6 +117,7 @@ export function useProgressiveAudio() {
   return {
     enabled,
     playCue,
+    setDynoRunIntensity,
     toggle,
   };
 }

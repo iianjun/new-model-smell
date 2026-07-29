@@ -204,6 +204,16 @@
   text-transform: uppercase;
 }
 
+.runtime-card small {
+  display: block;
+  margin-top: 0.28rem;
+  color: rgba(37, 39, 35, 0.72);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
 .status-light {
   width: 0.8rem;
   height: 0.8rem;

@@ -15,7 +15,13 @@ import {
   INSPECTOR_CART_COLLIDER_CENTER_Y,
   INSPECTOR_CART_COLLIDER_HALF_HEIGHT,
 } from "./inspectorCartGeometry";
+import {
+  getInitialValetNavigationWaypointIndex,
+  getValetNavigationWaypoint,
+  SHOWROOM_POSITION,
+} from "./showroomLayout";
 import { useArcadeVehicle } from "./useArcadeVehicle";
+import { useNavigationRoute } from "./useNavigationRoute";
 
 type InspectorCartProps = {
   awake: boolean;
@@ -23,6 +29,7 @@ type InspectorCartProps = {
   cameraEnabled: boolean;
   controlsEnabled: boolean;
   initialPosition: WorldPosition;
+  navigationTargetPosition: WorldPosition;
   onTelemetry: (telemetry: DrivingTelemetry) => void;
   presentation: CartPresentation;
 };
@@ -33,6 +40,7 @@ export function InspectorCart({
   cameraEnabled,
   controlsEnabled,
   initialPosition,
+  navigationTargetPosition,
   onTelemetry,
   presentation,
 }: InspectorCartProps) {
@@ -40,10 +48,20 @@ export function InspectorCart({
   const stowed = presentation === "stowed";
   const transferActive = presentation !== "driving";
   const cartModel = useRef<Group>(null);
+  const navigationDisplayX = navigationTargetPosition.x - SHOWROOM_POSITION[0];
+  const getValetNavigationTarget = useNavigationRoute(
+    getInitialValetNavigationWaypointIndex(initialPosition, navigationDisplayX),
+    (position, currentIndex) =>
+      getValetNavigationWaypoint(position, navigationDisplayX, currentIndex),
+  );
   const motion = useArcadeVehicle({
     body,
     controlsEnabled,
     initialPosition,
+    navigation: {
+      getTargetPosition: getValetNavigationTarget,
+      target: "showroom",
+    },
     onTelemetry,
     tuning: INSPECTOR_CART_TUNING,
   });

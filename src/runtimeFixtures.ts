@@ -24,14 +24,21 @@ export type RuntimeTrackedCompanyFixture = {
   name: string;
 };
 
+export type RuntimeVisualCameraFixture = {
+  position: RuntimeWorldPosition;
+  target: RuntimeWorldPosition;
+};
+
 export type RuntimeFixtures = {
   initialActiveFlagshipPosition?: RuntimeWorldPosition;
   initialActiveFlagshipYaw?: number;
   initialCartPosition?: RuntimeWorldPosition;
   initialCartValetBayIndex?: number;
   initialDriveOutFlagshipId?: string;
+  openingElapsedSeconds?: number;
   openAiFlagshipLineup?: readonly RuntimeFlagshipModelFixture[];
   trackedCompanies?: readonly RuntimeTrackedCompanyFixture[];
+  visualCamera?: RuntimeVisualCameraFixture;
 };
 
 declare global {

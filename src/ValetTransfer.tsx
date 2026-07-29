@@ -16,10 +16,10 @@ import {
 } from "./experience";
 import type { FlagshipModel, WorldPosition } from "./flagshipLineup";
 import {
+  findAlignedValetBayIndex,
   getFlagshipTrunkWorldPosition,
   getValetBayWorldPosition,
   getYawFromQuaternion,
-  isCartAlignedWithValetBay,
   MODEL_DISPLAY_LOCAL_Z,
   VALET_BAY_LOCAL_Z,
 } from "./showroomLayout";
@@ -29,9 +29,10 @@ const CHARCOAL = "#252723";
 const FLOOR = "#d8c8a8";
 const SAFETY_ORANGE = "#ef6d32";
 const WARM_IVORY = "#f2e7d2";
+const VALET_CAPTURE_DWELL_MS = 900;
 const PHASE_DURATION_MS: Record<TransferPhase, number> = {
   "flagship-waking": 780,
-  "valet-aligning": 620,
+  "valet-aligning": 1_100,
   "valet-clamping": 520,
   "valet-stowing": 1_180,
 };
@@ -215,6 +216,10 @@ export function ValetTransferSystem({
   const phaseStartedAt = useRef(performance.now());
   const phaseStartPosition = useRef<WorldPosition | null>(null);
   const phaseCompleteSent = useRef(false);
+  const alignedBayCandidate = useRef<{
+    index: number;
+    startedAt: number;
+  } | null>(null);
 
   useEffect(() => {
     phaseStartedAt.current = performance.now();
@@ -236,21 +241,31 @@ export function ValetTransferSystem({
       const position = cart.translation();
       const velocity = cart.linvel();
       const yaw = getYawFromQuaternion(cart.rotation());
-      const alignedIndex = displayPositions.findIndex((displayX) =>
-        isCartAlignedWithValetBay(
-          position,
-          yaw,
-          Math.hypot(velocity.x, velocity.z),
-          displayX,
-        ),
+      const alignedIndex = findAlignedValetBayIndex(
+        position,
+        yaw,
+        Math.hypot(velocity.x, velocity.z),
+        displayPositions,
       );
 
-      if (alignedIndex >= 0) {
+      if (alignedIndex < 0) {
+        alignedBayCandidate.current = null;
+      } else if (alignedBayCandidate.current?.index !== alignedIndex) {
+        alignedBayCandidate.current = {
+          index: alignedIndex,
+          startedAt: performance.now(),
+        };
+      } else if (
+        performance.now() - alignedBayCandidate.current.startedAt >=
+        VALET_CAPTURE_DWELL_MS
+      ) {
         onStart(lineup[alignedIndex].id);
       }
 
       return;
     }
+
+    alignedBayCandidate.current = null;
 
     if (!activeFlagshipId || !isTransferPhase(phase)) {
       return;

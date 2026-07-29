@@ -1,10 +1,40 @@
 import { useEffect, useRef } from "react";
+import { PHYSICS_TIME_STEP } from "./driving.js";
 
 export type DrivingInput = {
   handbrake: boolean;
+  handbrakeStepsRemaining: number;
   steer: number;
   throttle: number;
 };
+
+export const HANDBRAKE_DURATION_STEPS = Math.round(0.52 / PHYSICS_TIME_STEP);
+
+export function createDrivingInput(): DrivingInput {
+  return {
+    handbrake: false,
+    handbrakeStepsRemaining: 0,
+    steer: 0,
+    throttle: 0,
+  };
+}
+
+export function queueHandbrakePulse(input: DrivingInput) {
+  input.handbrake = true;
+  input.handbrakeStepsRemaining = HANDBRAKE_DURATION_STEPS;
+}
+
+export function consumeHandbrakeStep(input: DrivingInput) {
+  const handbrakeActive = input.handbrakeStepsRemaining > 0;
+
+  if (handbrakeActive) {
+    input.handbrakeStepsRemaining -= 1;
+  }
+
+  input.handbrake = input.handbrakeStepsRemaining > 0;
+
+  return handbrakeActive;
+}
 
 const DRIVING_KEYS = new Set([
   "ArrowDown",
@@ -28,14 +58,8 @@ function isEditableTarget(target: EventTarget | null) {
 
 export function useDrivingInput(enabled: boolean) {
   const enabledRef = useRef(enabled);
-  const input = useRef<DrivingInput>({
-    handbrake: false,
-    steer: 0,
-    throttle: 0,
-  });
+  const input = useRef<DrivingInput>(createDrivingInput());
   const pressedKeys = useRef(new Set<string>());
-  const handbrakeUntil = useRef(0);
-  const handbrakeTimer = useRef<number | undefined>(undefined);
   const reverseAlarmTimer = useRef<number | undefined>(undefined);
   const reverseAlarmContext = useRef<AudioContext | null>(null);
 
@@ -47,24 +71,14 @@ export function useDrivingInput(enabled: boolean) {
     }
 
     pressedKeys.current.clear();
-    handbrakeUntil.current = 0;
-    input.current = {
-      handbrake: false,
-      steer: 0,
-      throttle: 0,
-    };
-    window.clearTimeout(handbrakeTimer.current);
+    input.current = createDrivingInput();
     window.clearInterval(reverseAlarmTimer.current);
     reverseAlarmTimer.current = undefined;
   }, [enabled]);
 
   useEffect(() => {
     pressedKeys.current.clear();
-    input.current = {
-      handbrake: false,
-      steer: 0,
-      throttle: 0,
-    };
+    input.current = createDrivingInput();
 
     const soundReverseAlarm = () => {
       try {
@@ -122,11 +136,7 @@ export function useDrivingInput(enabled: boolean) {
 
     const updateInput = () => {
       if (!enabledRef.current) {
-        input.current = {
-          handbrake: false,
-          steer: 0,
-          throttle: 0,
-        };
+        input.current = createDrivingInput();
         stopReverseAlarm();
         return;
       }
@@ -139,7 +149,6 @@ export function useDrivingInput(enabled: boolean) {
 
       input.current.throttle = Number(accelerate) - Number(reverse);
       input.current.steer = Number(left) - Number(right);
-      input.current.handbrake = performance.now() < handbrakeUntil.current;
       updateReverseAlarm();
     };
 
@@ -159,9 +168,7 @@ export function useDrivingInput(enabled: boolean) {
       pressedKeys.current.add(event.code);
 
       if (event.code === "Space" && !event.repeat) {
-        handbrakeUntil.current = performance.now() + 520;
-        window.clearTimeout(handbrakeTimer.current);
-        handbrakeTimer.current = window.setTimeout(updateInput, 530);
+        queueHandbrakePulse(input.current);
       }
 
       updateInput();
@@ -186,8 +193,7 @@ export function useDrivingInput(enabled: boolean) {
 
     const clearInput = () => {
       pressedKeys.current.clear();
-      handbrakeUntil.current = 0;
-      window.clearTimeout(handbrakeTimer.current);
+      input.current = createDrivingInput();
       stopReverseAlarm();
       updateInput();
     };
@@ -200,7 +206,6 @@ export function useDrivingInput(enabled: boolean) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", clearInput);
-      window.clearTimeout(handbrakeTimer.current);
       stopReverseAlarm();
       const audioContext = reverseAlarmContext.current;
       reverseAlarmContext.current = null;

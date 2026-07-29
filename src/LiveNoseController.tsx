@@ -12,12 +12,9 @@ import {
 import {
   animateNoseInhaleParticles,
   animateNoseSneezeParticles,
-  NOSE_GAUGE_LABEL,
   type NoseLandmarkHandles,
 } from "./NoseLandmark";
 import { NOSE_REST_POSITION_Y } from "./opening";
-import type { NoseReaction, NoseTrackingMode } from "./runtimeTestState";
-import { publishNoseRuntimeTestState } from "./runtimeTestState";
 
 const LIVE_INHALE_CYCLE_SECONDS = 5.4;
 const LIVE_INHALE_SECONDS = 2.05;
@@ -113,14 +110,8 @@ export function LiveNoseController({
 
     const inhaleAge = time % LIVE_INHALE_CYCLE_SECONDS;
     const inhaling = inhaleAge < LIVE_INHALE_SECONDS;
-    const reaction: NoseReaction = sneezing
-      ? "sneeze"
-      : inhaling
-        ? "inhale"
-        : "idle";
-    const mode: NoseTrackingMode = trackingVehicle
-      ? "vehicle-tracking"
-      : "model-freshness";
+    const reaction = sneezing ? "sneeze" : inhaling ? "inhale" : "idle";
+    const mode = trackingVehicle ? "vehicle-tracking" : "model-freshness";
 
     if (turntableGroup) {
       turntableGroup.rotation.y = dampAngle(
@@ -190,17 +181,6 @@ export function LiveNoseController({
       } else if (reaction === "inhale") {
         animateNoseInhaleParticles(particleGroup, inhaleAge, frameDelta);
       }
-    }
-
-    if (import.meta.env.DEV && turntableGroup && noseGroup && particleGroup) {
-      publishNoseRuntimeTestState({
-        freshness,
-        gaugeLabel: NOSE_GAUGE_LABEL,
-        mode,
-        particlesVisible: particleGroup.visible,
-        reaction,
-        turntableYaw: turntableGroup.rotation.y,
-      });
     }
   });
 

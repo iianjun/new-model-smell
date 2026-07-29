@@ -7,10 +7,15 @@ import {
 import { type RefObject, useRef } from "react";
 import { ChaseCamera } from "./ChaseCamera";
 import { type DrivingTelemetry, FLAGSHIP_TUNING } from "./driving";
+import {
+  getDynoNavigationWaypoint,
+  getInitialDynoNavigationWaypointIndex,
+} from "./dyno";
 import type { FlagshipModel, WorldPosition } from "./flagshipLineup";
 import { type LightSignature, ModelVehicleModel } from "./ModelVehicleModel";
 import { useArcadeVehicle } from "./useArcadeVehicle";
 import type { DrivingInput } from "./useDrivingInput";
+import { useNavigationRoute } from "./useNavigationRoute";
 
 const DRIVE_OUT_EXIT_Z = -0.78;
 export const FLAGSHIP_INITIAL_YAW = Math.PI;
@@ -43,6 +48,10 @@ export function ActiveFlagship({
   signature,
 }: ActiveFlagshipProps) {
   const driveOutReported = useRef(false);
+  const getDynoNavigationTarget = useNavigationRoute(
+    getInitialDynoNavigationWaypointIndex(initialPosition),
+    getDynoNavigationWaypoint,
+  );
   const motion = useArcadeVehicle({
     body,
     controlsEnabled,
@@ -50,6 +59,10 @@ export function ActiveFlagship({
     initialYaw,
     input,
     movementEnabled,
+    navigation: {
+      getTargetPosition: getDynoNavigationTarget,
+      target: "dyno",
+    },
     onTelemetry,
     tuning: FLAGSHIP_TUNING,
   });

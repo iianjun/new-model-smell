@@ -5,6 +5,8 @@ export type DrivingState =
   | "ready"
   | "recovery";
 
+export const PHYSICS_TIME_STEP = 1 / 60;
+
 export type ArcadeVehicleTuning = {
   accelerationRate: number;
   coastingRate: number;
@@ -43,7 +45,7 @@ export const INSPECTOR_CART_TUNING = {
 
 export const FLAGSHIP_TUNING = {
   accelerationRate: 2.25,
-  coastingRate: 1.35,
+  coastingRate: 2.4,
   forwardSpeed: 9.2,
   handbrakeGrip: 1.15,
   handbrakeSpeedScale: 0.48,
@@ -56,7 +58,15 @@ export const FLAGSHIP_TUNING = {
   steeringSpeedDivisor: 4.6,
 } as const satisfies ArcadeVehicleTuning;
 
+export type NavigationTarget = "dyno" | "showroom";
+export type NavigationTelemetry = {
+  direction: "ahead" | "left" | "right";
+  distanceMeters: number;
+  target: NavigationTarget;
+};
+
 export type DrivingTelemetry = {
+  navigation?: NavigationTelemetry;
   state: DrivingState;
 };
 
@@ -77,6 +87,28 @@ export function getHeadingBasis(yaw: number): HeadingBasis {
     forwardZ: -Math.cos(yaw),
     rightX: Math.cos(yaw),
     rightZ: -Math.sin(yaw),
+  };
+}
+
+export function getNavigationTelemetry(
+  position: { x: number; z: number },
+  yaw: number,
+  target: NavigationTarget,
+  targetPosition: { x: number; z: number },
+): NavigationTelemetry {
+  const deltaX = targetPosition.x - position.x;
+  const deltaZ = targetPosition.z - position.z;
+  const desiredYaw = Math.atan2(-deltaX, -deltaZ);
+  const yawError = Math.atan2(
+    Math.sin(desiredYaw - yaw),
+    Math.cos(desiredYaw - yaw),
+  );
+
+  return {
+    direction:
+      Math.abs(yawError) <= 0.24 ? "ahead" : yawError > 0 ? "left" : "right",
+    distanceMeters: Math.round(Math.hypot(deltaX, deltaZ)),
+    target,
   };
 }
 

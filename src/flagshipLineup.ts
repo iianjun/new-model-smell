@@ -1,20 +1,20 @@
-import { type BenchmarkRecord, parseBenchmarkRecords } from "./benchmark";
-import { formatDateOnly, parseDateOnly } from "./dateOnly";
+import { type BenchmarkRecord, parseBenchmarkRecords } from "./benchmark.js";
+import { formatDateOnly, parseDateOnly } from "./dateOnly.js";
 import type {
   RuntimeFlagshipModelFixture,
   RuntimeWorldPosition,
-} from "./runtimeFixtures";
+} from "./runtimeFixtures.js";
 import {
   getShowroomDisplayPositions,
   getValetBayWorldPosition,
-} from "./showroomLayout";
+} from "./showroomLayout.js";
 
 export type {
   RuntimeFixtures,
   RuntimeFlagshipModelFixture,
   RuntimeTrackedCompanyFixture,
   RuntimeWorldPosition,
-} from "./runtimeFixtures";
+} from "./runtimeFixtures.js";
 
 declare const publicAvailabilityDateBrand: unique symbol;
 
@@ -115,9 +115,11 @@ export const OPENAI_FLAGSHIP_LINEUP = [
 ] as const satisfies readonly FlagshipModel[];
 
 function getRuntimeFixtures() {
-  return import.meta.env.DEV
-    ? window.__NEW_MODEL_MOTORS_TEST_FIXTURES__
-    : undefined;
+  const isDevelopment = (
+    import.meta as ImportMeta & { env?: { DEV?: boolean } }
+  ).env?.DEV;
+
+  return isDevelopment ? window.__NEW_MODEL_MOTORS_TEST_FIXTURES__ : undefined;
 }
 
 function parseRuntimeLineup(lineup: readonly RuntimeFlagshipModelFixture[]) {
@@ -232,6 +234,6 @@ export function isInOpenAiShowroomRevealZone(position: WorldPosition) {
     position.x >= -13.4 &&
     position.x <= -5.2 &&
     position.z >= -7.6 &&
-    position.z <= -0.8
+    position.z <= 0.6
   );
 }

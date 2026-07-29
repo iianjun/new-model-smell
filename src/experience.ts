@@ -94,7 +94,7 @@ const EXPERIENCE_PHASE_BEHAVIOR: Record<
     cartPresentation: "clamped",
     controlledVehicle: null,
     openingCompleted: true,
-    statusLabel: "Valet clamps secured",
+    statusLabel: "Floor guidance aligned · Valet clamps secured",
   },
   "valet-stowing": {
     cartPresentation: "packing",

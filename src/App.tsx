@@ -39,11 +39,14 @@ import {
 } from "./flagshipLineup";
 import { ModelDossier } from "./ModelDossier";
 import {
+  type FlagshipLaunchFreshness,
+  getNewestFlagshipLaunchFreshness,
+} from "./modelFreshness";
+import {
   INITIAL_OPENING_STAGE,
   type OpeningEntry,
   type OpeningStage,
 } from "./opening";
-import { publishDossierRuntimeTestState } from "./runtimeTestState";
 import { ShowroomDirectory } from "./ShowroomDirectory";
 import { useProgressiveAudio } from "./useProgressiveAudio";
 
@@ -78,6 +81,7 @@ type RuntimeInterfaceProps = {
   experience: ExperienceState;
   openingEntry: OpeningEntry;
   openingStage: OpeningStage;
+  noseFreshness: FlagshipLaunchFreshness;
   openAiFlagshipLineup: readonly FlagshipModel[];
   showroomVisible: boolean;
   telemetry: DrivingTelemetry;
@@ -91,6 +95,7 @@ function RuntimeInterface({
   experience,
   openingEntry,
   openingStage,
+  noseFreshness,
   openAiFlagshipLineup,
   showroomVisible,
   telemetry,
@@ -147,9 +152,27 @@ function RuntimeInterface({
     sneeze: "Sneeze reveal in progress",
     wake: "Inspector Cart waking",
   }[openingStage];
+  const navigationLabel =
+    !openingActive &&
+    !dynoState.vehicleSecured &&
+    (inspectorDriving || flagshipDriving) &&
+    telemetry.navigation
+      ? `${telemetry.navigation.target === "showroom" ? "Showroom" : "Dyno Lab"} · ${
+          telemetry.navigation.distanceMeters
+        } m · ${
+          telemetry.navigation.direction === "ahead"
+            ? "straight ahead"
+            : `steer ${telemetry.navigation.direction}`
+        }`
+      : null;
 
   return (
     <div className="runtime-interface">
+      <p className="visually-hidden" data-testid="nose-freshness">
+        The Nose Model Freshness target · {noseFreshness.company.name} ·{" "}
+        {noseFreshness.model.name} · NEW MODEL SMELL REMAINING{" "}
+        {noseFreshness.smellRemainingPercent}%
+      </p>
       <header className="title-lockup">
         <p>Motor Town · Runtime 09</p>
         <h1>New Model Motors</h1>
@@ -189,6 +212,9 @@ function RuntimeInterface({
         <div>
           <p>{statusTitle}</p>
           <strong>{statusLabel}</strong>
+          {navigationLabel ? (
+            <small data-testid="navigation-guide">{navigationLabel}</small>
+          ) : null}
         </div>
       </aside>
 
@@ -274,10 +300,15 @@ function App() {
   const {
     enabled: audioEnabled,
     playCue,
+    setDynoRunIntensity,
     toggle: toggleAudio,
   } = useProgressiveAudio();
   const [trackedCompanies] =
     useState<readonly TrackedCompany[]>(getTrackedCompanies);
+  const noseFreshness = useMemo(
+    () => getNewestFlagshipLaunchFreshness(trackedCompanies),
+    [trackedCompanies],
+  );
   const openAiFlagshipLineup = useMemo(() => {
     const openAi = trackedCompanies.find((company) => company.id === "openai");
 
@@ -422,20 +453,30 @@ function App() {
     return () => window.removeEventListener("keydown", skipOpening);
   }, []);
 
+  const previousDrivingState = useRef(telemetry.state);
+
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      publishDossierRuntimeTestState({ phase: dossierPhase });
+    if (previousDrivingState.current !== telemetry.state) {
+      if (telemetry.state === "bounce") {
+        playCue("collision");
+      } else if (telemetry.state === "handbrake") {
+        playCue("tire");
+      }
     }
-  }, [dossierPhase]);
+
+    previousDrivingState.current = telemetry.state;
+  }, [playCue, telemetry.state]);
 
   const previousDynoPhase = useRef(dynoState.phase);
 
   useEffect(() => {
+    setDynoRunIntensity(dynoState.phase === "running", dynoState.progress);
+  }, [dynoState.phase, dynoState.progress, setDynoRunIntensity]);
+
+  useEffect(() => {
     if (
       previousDynoPhase.current !== dynoState.phase &&
-      (dynoState.phase === "clamping" ||
-        dynoState.phase === "running" ||
-        dynoState.phase === "sheet-ready")
+      (dynoState.phase === "clamping" || dynoState.phase === "sheet-ready")
     ) {
       playCue("dyno");
     }
@@ -478,6 +519,7 @@ function App() {
             audioEnabled={audioEnabled}
             dynoState={dynoState}
             experience={experience}
+            noseFreshness={noseFreshness}
             openingEntry={openingEntry}
             openingStage={openingStage}
             openAiFlagshipLineup={openAiFlagshipLineup}
