@@ -27,5 +27,8 @@ hooks using the project-local executable.
 - `pnpm assets:measure` — refresh the runtime GLB measurement record after
   intentionally changing a delivery asset
 - `pnpm test:browser` — run the Playwright Chromium smoke tests
+- `pnpm exec playwright test tests/vertical-slice-visual.spec.ts --update-snapshots`
+  — refresh the six desktop visual baselines; inspect every updated image
+  before committing it
 - `pnpm validate` — run Biome, type checking, runtime GLB validation, the
   production build, and browser tests

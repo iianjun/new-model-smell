@@ -44,7 +44,7 @@ Source and adapt from the selected CC0 kit family:
 
 - road, curb, sidewalk, and blocked-road modules;
 - generic building shell, windows, doors, lamps, trees, barriers, and signs;
-- temporary Inspector Cart and Model Vehicle meshes;
+- temporary generic background vehicle meshes;
 - temporary UI, tire, and collision sounds.
 
 Shipped third-party files, authoring sources, licenses, modifications, and
@@ -74,7 +74,7 @@ The Inspector Cart combines the compact proportions of an airport baggage tug an
 
 ## Driving feel
 
-Both vehicles use forgiving arcade physics rather than realistic simulation. The Inspector Cart is slow, turns tightly, and visibly wobbles. The Model Vehicle is faster, heavier, turns more broadly, and permits a small controlled drift. Collisions bounce without damage or failure, and overturned vehicles recover automatically.
+Both vehicles use forgiving arcade physics rather than realistic simulation. The Inspector Cart is slow, turns tightly, and visibly wobbles. The Model Vehicle is faster, heavier, turns more broadly, and permits a small controlled drift. Collisions bounce without damage or failure. The physical chassis stays upright by locking pitch and roll, while vehicles that fall out of the world or become irretrievably trapped recover automatically.
 
 `WASD` and the arrow keys provide the same accelerate, reverse, and steering controls; reverse direction requires no manual gear change. `Space` provides a short handbrake. Different vehicle characters must come from tuned acceleration, steering, grip, suspension response, and sound without introducing a second control scheme.
 

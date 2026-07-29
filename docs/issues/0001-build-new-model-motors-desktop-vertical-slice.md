@@ -1,6 +1,8 @@
 # Build the New Model Motors desktop vertical slice
 
-Status: `ready-for-agent`
+Status: `done`
+
+Evidence: [Ticket 09 desktop QA report](./new-model-motors-vertical-slice/09-desktop-qa-report.md)
 
 ## Problem Statement
 
@@ -33,7 +35,7 @@ The complete experience uses forgiving arcade physics, one consistent high three
 11. As a visitor, I want the Inspector Cart to accelerate modestly and turn tightly, so that exploring the compact slice is easy.
 12. As a visitor, I want the Inspector Cart to wobble and sound unnecessarily industrial, so that it has a comic identity distinct from a Flagship.
 13. As a visitor, I want collisions to bounce without damage or failure, so that mistakes remain playful.
-14. As a visitor, I want an overturned or trapped vehicle to recover automatically, so that driving mistakes cannot block access to the information.
+14. As a visitor, I want vehicles kept upright and irretrievably trapped vehicles to recover automatically, so that driving mistakes cannot block access to the information.
 15. As a visitor, I want one consistent high three-quarter chase camera, so that nearby roads, buildings, and destinations remain understandable.
 16. As a visitor, I want the camera to follow the Inspector Cart and every Model Vehicle using the same visual language, so that changing vehicles does not require relearning navigation.
 17. As a visitor, I want a compact triangular road loop, so that the OpenAI Dealership and Dyno Lab feel like places in a town rather than adjacent menu buttons.
@@ -120,7 +122,7 @@ The complete experience uses forgiving arcade physics, one consistent high three
 - Build the Inspector Cart as a separate vehicle identity with a small upright industrial silhouette, tight steering, modest acceleration, visible wobble, a smell detector, and serious utility sounds.
 - Build the Model Vehicle as a faster, heavier arcade vehicle with broader steering and a limited controllable drift. Both vehicles share controls, collision recovery, and the same camera system.
 - Use `WASD` and arrow keys for acceleration, reverse, and steering. Use `Space` for a short handbrake. Direction changes require no manual gear mode. Prevent page scrolling while driving controls have focus.
-- Make collisions non-destructive and recover vehicles automatically when overturned or irretrievably stuck. The experience has no damage model, lives, timer, score, or failure screen.
+- Make collisions non-destructive, keep the physical chassis upright by locking pitch and roll, and recover vehicles automatically when they fall out of the world or become irretrievably stuck. The experience has no damage model, lives, timer, score, or failure screen.
 - Keep the Showroom in the same loaded world. Fade or remove its roof and camera-facing wall sections based on approach and occupancy while retaining the vehicle, camera, and physics state.
 - Place one clearly marked Valet Transfer Bay behind each displayed Model Vehicle. Successful alignment triggers the clamp and transfer sequence; no model-selection menu substitutes for parking.
 - During Valet Transfer, suspend visitor steering, align the Cart deterministically, perform the Cart-stowing animation, activate the chosen Flagship, set it as the Active Flagship, and return steering only when the selected vehicle is ready for the manual Drive-Out.
@@ -148,7 +150,7 @@ The complete experience uses forgiving arcade physics, one consistent high three
 - Run the dossier portion with comparable benchmark evidence and with solo non-comparable evidence. Assert that direct rival comparison appears only in the comparable case and that no synthetic overall score appears.
 - Run the opening with normal motion, an immediate any-key skip, and reduced-motion preference. Assert that every path reaches controllable Inspector Cart driving and that the reduced-motion path omits the large camera impulse.
 - Exercise both `WASD` and arrow-key mappings and the handbrake through public input. Assert externally visible movement and state progression rather than fixed numerical velocities.
-- Verify recovery behavior by causing a representative collision and overturned state. The vehicle must return to controllable driving without damage, failure UI, or a full experience reset.
+- Verify recovery behavior by causing a representative collision and irretrievably trapped state. The chassis' upright policy makes an overturned state impossible through public input. The vehicle must return to controllable driving without damage, failure UI, or a full experience reset.
 - Verify dossier state preservation from externally visible behavior: the same Flagship identity remains active, the vehicle returns at the Dyno rather than the Dealership, and driving resumes without repeating Valet Transfer.
 - Add visual-regression checkpoints for the Motor Town reveal, cutaway Showroom, active Valet Transfer, Dyno escalation, physical-to-2D sheet transition, and final Model Dossier. Use tolerant image comparison appropriate for WebGL output and treat material, palette, camera framing, and destination legibility as the assertions.
 - Validate the curated domain fixture at its loading boundary. Reject missing source provenance, invalid Public Availability Dates, incomplete Benchmark Records, and rival comparisons whose source, version, or conditions do not match.
