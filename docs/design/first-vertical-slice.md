@@ -47,6 +47,10 @@ Source and adapt from the selected CC0 kit family:
 - temporary Inspector Cart and Model Vehicle meshes;
 - temporary UI, tire, and collision sounds.
 
+Shipped third-party files, authoring sources, licenses, modifications, and
+runtime usage are recorded in the
+[runtime asset manifest](asset-manifest.md).
+
 Build from primitives or substantially customize:
 
 - OpenAI Dealership entrance silhouette and restrained identification;

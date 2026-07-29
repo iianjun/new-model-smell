@@ -10,6 +10,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "assets:measure": "node scripts/validate-runtime-assets.mjs --update",
+    "assets:validate": "node scripts/validate-runtime-assets.mjs",
     "format": "biome format .",
     "format:write": "biome format --write .",
     "lint": "biome lint .",
@@ -19,7 +21,7 @@
     "check:write": "biome check --write .",
     "typecheck": "tsc -b",
     "test:browser": "playwright test",
-    "validate": "pnpm check && pnpm typecheck && pnpm build && pnpm test:browser",
+    "validate": "pnpm check && pnpm typecheck && pnpm assets:validate && pnpm build && pnpm test:browser",
     "prepare": "lefthook install"
   },
   "dependencies": {
@@ -37,6 +39,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "0.185.1",
     "@vitejs/plugin-react": "^6.0.3",
+    "gltf-validator": "2.0.0-dev.3.10",
     "lefthook": "2.1.10",
     "typescript": "7.0.2",
     "vite": "^8.1.1"

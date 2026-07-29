@@ -33,6 +33,7 @@ import {
   getShowroomDisplayPositions,
 } from "./showroomLayout";
 import { useDrivingInput } from "./useDrivingInput";
+import { MOTOR_TOWN_PALETTE } from "./visualLanguage";
 
 type MotorTownCanvasProps = {
   activeFlagship: FlagshipModel | null;
@@ -165,7 +166,11 @@ function MotorTownWorld({
   return (
     <>
       <ambientLight intensity={1.8} />
-      <hemisphereLight color="#f7f0df" groundColor="#718654" intensity={1.2} />
+      <hemisphereLight
+        color={MOTOR_TOWN_PALETTE.warmIvory}
+        groundColor={MOTOR_TOWN_PALETTE.fadedGreen}
+        intensity={1.2}
+      />
       <directionalLight
         castShadow
         intensity={2.65}

@@ -1,11 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { loadingSurface } from "./support/runtime.js";
 
 test.describe.configure({ mode: "serial" });
-
-const loadingSurface = (page: import("@playwright/test").Page) =>
-  page.getByRole("status", {
-    name: "Loading New Model Motors",
-  });
 
 const drivingState = (page: import("@playwright/test").Page) =>
   page.getByTestId("driving-state");

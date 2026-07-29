@@ -22,6 +22,10 @@ hooks using the project-local executable.
 - `pnpm check` / `pnpm check:write` — run all Biome checks, including import
   organization
 - `pnpm typecheck` — check TypeScript project references
+- `pnpm assets:validate` — run the official glTF validator and confirm the
+  recorded runtime GLB measurements
+- `pnpm assets:measure` — refresh the runtime GLB measurement record after
+  intentionally changing a delivery asset
 - `pnpm test:browser` — run the Playwright Chromium smoke tests
-- `pnpm validate` — run Biome, type checking, the production build, and browser
-  tests
+- `pnpm validate` — run Biome, type checking, runtime GLB validation, the
+  production build, and browser tests

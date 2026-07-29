@@ -45,6 +45,7 @@ import {
 } from "./opening";
 import { publishDossierRuntimeTestState } from "./runtimeTestState";
 import { ShowroomDirectory } from "./ShowroomDirectory";
+import { useProgressiveAudio } from "./useProgressiveAudio";
 
 const MotorTownCanvas = lazy(() => import("./MotorTownCanvas"));
 
@@ -72,6 +73,7 @@ function LoadingSurface() {
 
 type RuntimeInterfaceProps = {
   activeFlagship: FlagshipModel | null;
+  audioEnabled: boolean;
   dynoState: DynoRuntimeState;
   experience: ExperienceState;
   openingEntry: OpeningEntry;
@@ -79,10 +81,12 @@ type RuntimeInterfaceProps = {
   openAiFlagshipLineup: readonly FlagshipModel[];
   showroomVisible: boolean;
   telemetry: DrivingTelemetry;
+  toggleAudio: () => void;
 };
 
 function RuntimeInterface({
   activeFlagship,
+  audioEnabled,
   dynoState,
   experience,
   openingEntry,
@@ -90,6 +94,7 @@ function RuntimeInterface({
   openAiFlagshipLineup,
   showroomVisible,
   telemetry,
+  toggleAudio,
 }: RuntimeInterfaceProps) {
   const inspectorDrivingLabel = {
     bounce: "Bounced clear",
@@ -146,9 +151,23 @@ function RuntimeInterface({
   return (
     <div className="runtime-interface">
       <header className="title-lockup">
-        <p>Motor Town · Runtime 08</p>
+        <p>Motor Town · Runtime 09</p>
         <h1>New Model Motors</h1>
       </header>
+
+      <button
+        aria-label={`${audioEnabled ? "Disable" : "Enable"} Motor Town audio`}
+        aria-pressed={audioEnabled}
+        className="audio-control"
+        onClick={(event) => {
+          toggleAudio();
+          event.currentTarget.blur();
+        }}
+        type="button"
+      >
+        <span aria-hidden="true">{audioEnabled ? "◖))" : "◖×"}</span>
+        Audio {audioEnabled ? "on" : "off"}
+      </button>
 
       <aside
         aria-label={
@@ -239,7 +258,7 @@ function RuntimeInterface({
 
       <p className="runtime-caption">
         Dyno Sheet Dossier
-        <span>08</span>
+        <span>09</span>
       </p>
     </div>
   );
@@ -252,6 +271,11 @@ function getOpeningEntry(): OpeningEntry {
 }
 
 function App() {
+  const {
+    enabled: audioEnabled,
+    playCue,
+    toggle: toggleAudio,
+  } = useProgressiveAudio();
   const [trackedCompanies] =
     useState<readonly TrackedCompany[]>(getTrackedCompanies);
   const openAiFlagshipLineup = useMemo(() => {
@@ -324,26 +348,33 @@ function App() {
     setIsReady(true);
   }, []);
   const finishOpening = useCallback(() => {
+    playCue("reveal");
     openingCompletedRef.current = true;
     dispatchExperience({ type: "opening-completed" });
     setSkipRequested(false);
-  }, []);
-  const startValetTransfer = useCallback((flagshipId: string) => {
-    dispatchExperience({ flagshipId, type: "valet-transfer-started" });
-  }, []);
+  }, [playCue]);
+  const startValetTransfer = useCallback(
+    (flagshipId: string) => {
+      playCue("transfer");
+      dispatchExperience({ flagshipId, type: "valet-transfer-started" });
+    },
+    [playCue],
+  );
   const completeValetPhase = useCallback((phase: TransferPhase) => {
     dispatchExperience({ phase, type: "valet-phase-completed" });
   }, []);
   const completeDriveOut = useCallback(() => {
+    playCue("reveal");
     dispatchExperience({ type: "drive-out-completed" });
-  }, []);
+  }, [playCue]);
   const updateTelemetry = useCallback(
     (nextTelemetry: DrivingTelemetry) => setTelemetry(nextTelemetry),
     [],
   );
   const openDossier = useCallback(() => {
+    playCue("dossier");
     dispatchDossier("open-requested");
-  }, []);
+  }, [playCue]);
   const closeDossier = useCallback(() => {
     dispatchDossier("close-requested");
   }, []);
@@ -397,6 +428,21 @@ function App() {
     }
   }, [dossierPhase]);
 
+  const previousDynoPhase = useRef(dynoState.phase);
+
+  useEffect(() => {
+    if (
+      previousDynoPhase.current !== dynoState.phase &&
+      (dynoState.phase === "clamping" ||
+        dynoState.phase === "running" ||
+        dynoState.phase === "sheet-ready")
+    ) {
+      playCue("dyno");
+    }
+
+    previousDynoPhase.current = dynoState.phase;
+  }, [dynoState.phase, playCue]);
+
   return (
     <main className="app-shell">
       <div className="world-canvas" aria-hidden="true">
@@ -429,6 +475,7 @@ function App() {
         <>
           <RuntimeInterface
             activeFlagship={activeFlagship}
+            audioEnabled={audioEnabled}
             dynoState={dynoState}
             experience={experience}
             openingEntry={openingEntry}
@@ -436,6 +483,7 @@ function App() {
             openAiFlagshipLineup={openAiFlagshipLineup}
             showroomVisible={showroomVisible}
             telemetry={telemetry}
+            toggleAudio={toggleAudio}
           />
           {activeFlagship && dossierBehavior.mounted ? (
             <ModelDossier
