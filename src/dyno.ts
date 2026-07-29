@@ -7,6 +7,9 @@ export const DYNO_ALIGNMENT_POSITION = {
 export const DYNO_ALIGNMENT_YAW = 0;
 export const DYNO_CLAMP_SECONDS = 0.78;
 export const DYNO_RUN_SECONDS = 3.6;
+export const DYNO_SHEET_LENGTH = 5.8;
+export const DYNO_SHEET_PRINT_READY_LENGTH = DYNO_SHEET_LENGTH - 0.02;
+export const DYNO_SHEET_RETRACTED_LENGTH = 0.03;
 
 export type DynoRunPhase =
   | "approach"
@@ -14,7 +17,10 @@ export type DynoRunPhase =
   | "clamping"
   | "paused"
   | "ready"
+  | "released"
+  | "releasing"
   | "running"
+  | "sheet-printing"
   | "sheet-ready"
   | "standby";
 
@@ -94,6 +100,24 @@ const DYNO_PHASE_DEFINITIONS = {
     statusSubject: "active-flagship",
     vehicleSecured: true,
   },
+  released: {
+    active: false,
+    alert: false,
+    readoutLabel: null,
+    runIntensity: NO_RUN_INTENSITY,
+    statusLabel: () => "Dyno released · resume driving",
+    statusSubject: "active-flagship",
+    vehicleSecured: false,
+  },
+  releasing: {
+    active: true,
+    alert: false,
+    readoutLabel: "Folding Dyno Sheet · releasing wheel clamps",
+    runIntensity: NO_RUN_INTENSITY,
+    statusLabel: () => "Dyno Sheet retracting",
+    statusSubject: "active-flagship",
+    vehicleSecured: true,
+  },
   running: {
     active: true,
     alert: false,
@@ -103,10 +127,19 @@ const DYNO_PHASE_DEFINITIONS = {
     statusSubject: "active-flagship",
     vehicleSecured: true,
   },
+  "sheet-printing": {
+    active: true,
+    alert: false,
+    readoutLabel: "Printing physical Dyno Sheet",
+    runIntensity: () => 0.14,
+    statusLabel: () => "Dyno Sheet printing",
+    statusSubject: "active-flagship",
+    vehicleSecured: true,
+  },
   "sheet-ready": {
     active: true,
     alert: false,
-    readoutLabel: "Physical Dyno Sheet printed",
+    readoutLabel: "Physical Dyno Sheet printed · grab orange tab and pull",
     runIntensity: () => 0.14,
     statusLabel: () => "Dyno Sheet ready",
     statusSubject: "active-flagship",
@@ -127,6 +160,12 @@ export function getDynoPhaseDefinition(phase: DynoRunPhase) {
   return DYNO_PHASE_DEFINITIONS[phase];
 }
 
+export type DynoAlignment = {
+  aligned: boolean;
+  alignmentError: number;
+  inApproachZone: boolean;
+};
+
 function normalizedAngle(value: number) {
   return Math.atan2(Math.sin(value), Math.cos(value));
 }
@@ -135,7 +174,7 @@ export function getDynoAlignment(
   position: { x: number; z: number },
   yaw: number,
   planarSpeed: number,
-) {
+): DynoAlignment {
   const xError = Math.abs(position.x - DYNO_ALIGNMENT_POSITION.x);
   const zError = Math.abs(position.z - DYNO_ALIGNMENT_POSITION.z);
   const yawError = Math.abs(normalizedAngle(yaw - DYNO_ALIGNMENT_YAW));

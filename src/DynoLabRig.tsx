@@ -1,3 +1,4 @@
+import { type ThreeEvent, useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import {
   type MutableRefObject,
@@ -13,16 +14,21 @@ import {
   type Mesh,
   type MeshStandardMaterial,
   SRGBColorSpace,
+  Vector3,
 } from "three";
-import { DYNO_ALIGNMENT_POSITION } from "./dyno";
+import {
+  DYNO_SHEET_DRAG_TOLERANCE_PX,
+  DYNO_SHEET_OPEN_THRESHOLD,
+  DYNO_SHEET_PULL_DISTANCE_PX,
+} from "./dossier";
+import { DYNO_ALIGNMENT_POSITION, DYNO_SHEET_LENGTH } from "./dyno";
+import { publishDossierRuntimeTestState } from "./runtimeTestState";
 
 const CHARCOAL = "#252723";
 const FLOOR = "#c7b994";
 const PALE_BLUE = "#b9d8dc";
 const SAFETY_ORANGE = "#ef6d32";
 const WARM_IVORY = "#f2e7d2";
-export const DYNO_SHEET_LENGTH = 5.8;
-
 export const DYNO_PIXEL_EFFECTS = Array.from({ length: 16 }, (_, index) => ({
   angle: (index / 16) * Math.PI * 2,
   id: `dyno-pixel-${index}`,
@@ -100,7 +106,94 @@ function DynoFan({ fan, x }: { fan: (fan: Group | null) => void; x: number }) {
   );
 }
 
-function DynoSheet({ sheet }: { sheet: RefObject<Group | null> }) {
+export type DynoSheetInteraction = {
+  canPull: () => boolean;
+  onOpenDossier: () => void;
+  onPullProgress: (progress: number) => void;
+};
+
+type DynoSheetProps = {
+  interaction: DynoSheetInteraction;
+  sheet: RefObject<Group | null>;
+};
+
+type R3fPointerCaptureTarget = {
+  releasePointerCapture: (pointerId: number) => void;
+  setPointerCapture: (pointerId: number) => void;
+};
+
+function getPointerCaptureTarget(event: ThreeEvent<PointerEvent>) {
+  return event.target as unknown as R3fPointerCaptureTarget;
+}
+
+function DynoSheet({
+  interaction: { canPull, onOpenDossier, onPullProgress },
+  sheet,
+}: DynoSheetProps) {
+  const dragOrigin = useRef<{ x: number; y: number } | null>(null);
+  const pullProgress = useRef(0);
+  const pullHandle = useRef<Group>(null);
+  const projectedHandle = useRef(new Vector3());
+
+  useFrame(({ camera, size }) => {
+    if (!import.meta.env.DEV || !canPull() || !pullHandle.current) {
+      return;
+    }
+
+    pullHandle.current.getWorldPosition(projectedHandle.current);
+    projectedHandle.current.project(camera);
+    publishDossierRuntimeTestState({
+      sheetHandle: {
+        x: Math.round((projectedHandle.current.x * 0.5 + 0.5) * size.width),
+        y: Math.round((-projectedHandle.current.y * 0.5 + 0.5) * size.height),
+      },
+    });
+  });
+
+  const finishPull = (event: ThreeEvent<PointerEvent>) => {
+    if (!dragOrigin.current) {
+      return;
+    }
+
+    dragOrigin.current = null;
+    document.body.style.cursor = "";
+    getPointerCaptureTarget(event).releasePointerCapture(event.pointerId);
+
+    if (pullProgress.current < DYNO_SHEET_OPEN_THRESHOLD) {
+      pullProgress.current = 0;
+      onPullProgress(0);
+    }
+  };
+
+  const movePull = (event: ThreeEvent<PointerEvent>) => {
+    const origin = dragOrigin.current;
+
+    if (!origin) {
+      return;
+    }
+
+    event.stopPropagation();
+    const distance = Math.max(
+      0,
+      Math.hypot(event.clientX - origin.x, event.clientY - origin.y) -
+        DYNO_SHEET_DRAG_TOLERANCE_PX,
+    );
+    const progress = Math.min(1, distance / DYNO_SHEET_PULL_DISTANCE_PX);
+    pullProgress.current = progress;
+    onPullProgress(progress);
+
+    if (progress < DYNO_SHEET_OPEN_THRESHOLD) {
+      return;
+    }
+
+    pullProgress.current = 1;
+    dragOrigin.current = null;
+    document.body.style.cursor = "";
+    getPointerCaptureTarget(event).releasePointerCapture(event.pointerId);
+    onPullProgress(1);
+    onOpenDossier();
+  };
+
   return (
     <group
       name="dyno-sheet"
@@ -127,6 +220,56 @@ function DynoSheet({ sheet }: { sheet: RefObject<Group | null> }) {
           />
         </mesh>
       ))}
+      <group position={[0, 0.14, DYNO_SHEET_LENGTH - 0.35]} ref={pullHandle}>
+        <mesh castShadow>
+          <boxGeometry args={[1.02, 0.08, 0.56]} />
+          <meshStandardMaterial
+            color={SAFETY_ORANGE}
+            emissive={SAFETY_ORANGE}
+            emissiveIntensity={0.24}
+            flatShading
+            roughness={1}
+          />
+        </mesh>
+        <mesh
+          onPointerCancel={finishPull}
+          onPointerDown={(event) => {
+            if (!canPull()) {
+              return;
+            }
+
+            event.stopPropagation();
+            dragOrigin.current = {
+              x: event.clientX,
+              y: event.clientY,
+            };
+            pullProgress.current = 0;
+            onPullProgress(0);
+            document.body.style.cursor = "grabbing";
+            getPointerCaptureTarget(event).setPointerCapture(event.pointerId);
+          }}
+          onPointerLeave={() => {
+            if (!dragOrigin.current) {
+              document.body.style.cursor = "";
+            }
+          }}
+          onPointerMove={movePull}
+          onPointerOver={() => {
+            if (canPull()) {
+              document.body.style.cursor = "grab";
+            }
+          }}
+          onPointerUp={finishPull}
+        >
+          <boxGeometry args={[2.2, 0.52, 1.32]} />
+          <meshBasicMaterial
+            color={SAFETY_ORANGE}
+            depthWrite={false}
+            opacity={0}
+            transparent
+          />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -166,8 +309,10 @@ export function DynoLabRig({
     sheet,
     statusMaterial,
   },
+  sheetInteraction,
 }: {
   handles: DynoRigHandles;
+  sheetInteraction: DynoSheetInteraction;
 }) {
   const displayTexture = useDynoDisplayTexture();
 
@@ -361,7 +506,7 @@ export function DynoLabRig({
           <boxGeometry args={[1.72, 0.44, 0.72]} />
           <meshStandardMaterial color={CHARCOAL} flatShading roughness={1} />
         </mesh>
-        <DynoSheet sheet={sheet} />
+        <DynoSheet interaction={sheetInteraction} sheet={sheet} />
       </group>
     </group>
   );

@@ -483,6 +483,319 @@
   box-shadow: 0.3rem 0.3rem 0 rgba(37, 39, 35, 0.16);
 }
 
+.dossier-overlay {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  overflow: auto;
+  pointer-events: auto;
+  background: rgba(27, 30, 27, 0.72);
+  backdrop-filter: blur(0.55rem);
+}
+
+.dossier-paper {
+  position: relative;
+  width: min(72rem, 100%);
+  min-height: min(48rem, calc(100dvh - 5rem));
+  margin: auto;
+  border: 2px solid #252723;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0 2.15rem,
+      rgba(239, 109, 50, 0.2) 2.15rem 2.25rem,
+      transparent 2.25rem
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(37, 39, 35, 0.035) 0,
+      rgba(37, 39, 35, 0.035) 1px,
+      transparent 1px,
+      transparent 1.65rem
+    ),
+    #f2e7d2;
+  box-shadow: 0.9rem 0.9rem 0 rgba(16, 18, 16, 0.44);
+  transform-origin: 50% 100%;
+}
+
+.dossier-overlay[data-phase="opening"] .dossier-paper {
+  animation: dossier-resolve 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dossier-overlay[data-phase="closing"] {
+  animation: dossier-backdrop-out 520ms ease-in both;
+}
+
+.dossier-overlay[data-phase="closing"] .dossier-paper {
+  animation: dossier-retract 520ms cubic-bezier(0.6, 0, 0.8, 0.2) both;
+}
+
+.dossier-header {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: clamp(1.2rem, 3vw, 2.4rem);
+  border-bottom: 0.35rem solid #ef6d32;
+  background: rgba(255, 252, 244, 0.76);
+}
+
+.dossier-header p,
+.benchmark-comparison > header p,
+.benchmark-record header p,
+.dossier-empty p,
+.dossier-footer,
+.dossier-identity dt,
+.benchmark-record dt {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.dossier-title {
+  margin: 0.18rem 0 0;
+  font-size: clamp(2.2rem, 6vw, 5.8rem);
+  letter-spacing: -0.065em;
+  line-height: 0.82;
+  text-transform: uppercase;
+}
+
+.dossier-header button {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.65rem 0.7rem 0.65rem 0.9rem;
+  border: 2px solid #252723;
+  color: #252723;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #f5c85e;
+  box-shadow: 0.25rem 0.25rem 0 #252723;
+  cursor: pointer;
+}
+
+.dossier-header button:focus-visible,
+.benchmark-record a:focus-visible {
+  outline: 0.2rem solid #ef6d32;
+  outline-offset: 0.22rem;
+}
+
+.dossier-header button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.dossier-header button span {
+  display: grid;
+  width: 1.4rem;
+  height: 1.4rem;
+  place-items: center;
+  border: 1px solid #252723;
+  font-size: 1.15rem;
+  line-height: 1;
+  background: #f2e7d2;
+}
+
+.dossier-identity {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-bottom: 1px solid rgba(37, 39, 35, 0.42);
+}
+
+.dossier-identity > div {
+  padding: 1rem clamp(1.2rem, 3vw, 2.4rem);
+  border-right: 1px solid rgba(37, 39, 35, 0.42);
+}
+
+.dossier-identity > div:last-child {
+  border-right: 0;
+}
+
+.dossier-identity dt,
+.benchmark-record dt {
+  color: rgba(37, 39, 35, 0.58);
+}
+
+.dossier-identity dd {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.dossier-evidence {
+  padding: clamp(1.2rem, 3vw, 2.4rem);
+}
+
+.benchmark-comparison {
+  border: 1px solid rgba(37, 39, 35, 0.52);
+  background: rgba(255, 252, 244, 0.68);
+}
+
+.benchmark-comparison + .benchmark-comparison {
+  margin-top: 1.25rem;
+}
+
+.benchmark-comparison > header {
+  display: grid;
+  grid-template-columns: minmax(14rem, 0.8fr) minmax(16rem, 1.2fr);
+  gap: 1.5rem;
+  align-items: end;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(37, 39, 35, 0.38);
+}
+
+.benchmark-title {
+  margin: 0.12rem 0 0;
+  font-size: clamp(1.15rem, 2vw, 1.7rem);
+  letter-spacing: -0.035em;
+  line-height: 1;
+}
+
+.benchmark-title span {
+  display: inline-block;
+  margin-left: 0.6rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid #252723;
+  font-size: 0.58em;
+  letter-spacing: 0.06em;
+  vertical-align: 0.18em;
+}
+
+.benchmark-conditions {
+  color: rgba(37, 39, 35, 0.72);
+  letter-spacing: 0.035em;
+  text-transform: none;
+}
+
+.comparison-policy {
+  margin: 0;
+  padding: 0.52rem 1rem;
+  color: #f2e7d2;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #252723;
+}
+
+.benchmark-comparison[data-comparison="direct"] .comparison-policy {
+  color: #252723;
+  background: #a9b86e;
+}
+
+.benchmark-records {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+}
+
+.benchmark-record {
+  min-width: 0;
+  padding: 1rem;
+  border-right: 1px solid rgba(37, 39, 35, 0.28);
+}
+
+.benchmark-record:last-child {
+  border-right: 0;
+}
+
+.benchmark-record.active-record {
+  box-shadow: inset 0.35rem 0 0 #ef6d32;
+}
+
+.benchmark-record header h4 {
+  margin: 0.1rem 0 0;
+  font-size: 1.08rem;
+}
+
+.benchmark-score {
+  display: flex;
+  gap: 0.55rem;
+  align-items: baseline;
+  margin: 0.9rem 0;
+}
+
+.benchmark-score strong {
+  color: #8f3717;
+  font-size: clamp(2rem, 5vw, 3.8rem);
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+}
+
+.benchmark-score span {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.benchmark-record dl {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.benchmark-record dl > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(37, 39, 35, 0.2);
+}
+
+.benchmark-record dd {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.benchmark-source {
+  display: inline-block;
+  margin-top: 0.9rem;
+  color: #8f3717;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-underline-offset: 0.18rem;
+}
+
+.dossier-empty {
+  padding: 2rem;
+  border: 1px dashed rgba(37, 39, 35, 0.58);
+  text-align: center;
+}
+
+.dossier-empty-title {
+  margin: 0.25rem 0;
+}
+
+.dossier-empty span {
+  font-size: 0.78rem;
+}
+
+.dossier-footer {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.9rem clamp(1.2rem, 3vw, 2.4rem);
+  border-top: 2px solid #252723;
+  background: #d7dfae;
+}
+
+.dossier-footer p {
+  margin: 0;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -528,6 +841,42 @@
   }
 }
 
+@keyframes dossier-resolve {
+  from {
+    opacity: 0.28;
+    transform: perspective(60rem) translateY(18vh) rotateX(18deg) scaleY(0.32);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dossier-retract {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: perspective(60rem) translateY(28vh) rotateX(22deg) scaleY(0.08);
+  }
+}
+
+@keyframes dossier-backdrop-out {
+  from {
+    background: rgba(27, 30, 27, 0.72);
+    backdrop-filter: blur(0.55rem);
+  }
+
+  to {
+    background: transparent;
+    backdrop-filter: blur(0);
+  }
+}
+
 @media (max-width: 42rem) {
   .runtime-card {
     top: auto;
@@ -557,6 +906,48 @@
     text-align: center;
     white-space: normal;
   }
+
+  .dossier-overlay {
+    padding: 0.65rem;
+  }
+
+  .dossier-header {
+    gap: 1rem;
+  }
+
+  .dossier-title {
+    font-size: 2.2rem;
+  }
+
+  .dossier-header button {
+    font-size: 0;
+  }
+
+  .dossier-header button span {
+    font-size: 1.15rem;
+  }
+
+  .dossier-identity {
+    grid-template-columns: 1fr;
+  }
+
+  .dossier-identity > div {
+    border-right: 0;
+    border-bottom: 1px solid rgba(37, 39, 35, 0.28);
+  }
+
+  .benchmark-comparison > header {
+    grid-template-columns: 1fr;
+  }
+
+  .benchmark-record {
+    border-right: 0;
+    border-bottom: 1px solid rgba(37, 39, 35, 0.28);
+  }
+
+  .dossier-footer {
+    display: grid;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -568,5 +959,11 @@
   .runtime-card[data-phase^="valet-"] .status-light,
   .runtime-card[data-phase="flagship-waking"] .status-light {
     animation: none;
+  }
+
+  .dossier-overlay[data-phase="opening"] .dossier-paper,
+  .dossier-overlay[data-phase="closing"],
+  .dossier-overlay[data-phase="closing"] .dossier-paper {
+    animation-duration: 1ms;
   }
 }

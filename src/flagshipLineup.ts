@@ -1,3 +1,5 @@
+import { type BenchmarkRecord, parseBenchmarkRecords } from "./benchmark";
+import { formatDateOnly, parseDateOnly } from "./dateOnly";
 import type {
   RuntimeFlagshipModelFixture,
   RuntimeWorldPosition,
@@ -26,6 +28,7 @@ export type CompanyTrim = {
 };
 
 export type FlagshipModel = {
+  benchmarkRecords: readonly BenchmarkRecord[];
   id: string;
   name: string;
   provenance: {
@@ -62,17 +65,10 @@ export const OPENAI_DEALERSHIP_POSITION = {
 } as const satisfies WorldPosition;
 
 export function toPublicAvailabilityDate(value: string) {
-  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
-  const parsedDate = new Date(`${value}T00:00:00.000Z`);
-  const isRealCalendarDate =
-    !Number.isNaN(parsedDate.getTime()) &&
-    parsedDate.toISOString().slice(0, 10) === value;
-
-  if (!isDateOnly || !isRealCalendarDate) {
-    throw new Error(`Invalid Public Availability Date: ${value}`);
-  }
-
-  return value as PublicAvailabilityDate;
+  return parseDateOnly(
+    value,
+    "Public Availability Date",
+  ) as PublicAvailabilityDate;
 }
 
 // Curated 2026-07-28 from OpenAI's general-availability launch post. The post
@@ -80,6 +76,34 @@ export function toPublicAvailabilityDate(value: string) {
 // affordable tier; only Sol meets this project's Flagship Model definition.
 export const OPENAI_FLAGSHIP_LINEUP = [
   {
+    benchmarkRecords: parseBenchmarkRecords([
+      {
+        benchmark: {
+          name: "Artificial Analysis Intelligence Index",
+          version: "v4.1",
+        },
+        caveats: [
+          "Aggregate index; interpret only under the published evaluation conditions",
+          "Published launch-table result; consult the linked source for methodology notes",
+        ],
+        conditions:
+          "GPT-5.6 Sol at max reasoning under the published v4.1 index configuration",
+        evaluationDate: "2026-07-09",
+        evaluator: "Artificial Analysis",
+        provenance:
+          "OpenAI GPT-5.6 general-availability launch table reporting the independent index result",
+        score: 58.9,
+        source: {
+          label: "OpenAI · GPT-5.6 launch benchmark table",
+          url: "https://openai.com/index/gpt-5-6/",
+        },
+        subject: {
+          id: "gpt-5-6-sol",
+          name: "GPT-5.6 Sol",
+        },
+        unit: "index score",
+      },
+    ]),
     id: "gpt-5-6-sol",
     name: "GPT-5.6 Sol",
     provenance: {
@@ -99,6 +123,7 @@ function getRuntimeFixtures() {
 function parseRuntimeLineup(lineup: readonly RuntimeFlagshipModelFixture[]) {
   return lineup.map((model) => ({
     ...model,
+    benchmarkRecords: parseBenchmarkRecords(model.benchmarkRecords ?? []),
     publicAvailabilityDate: toPublicAvailabilityDate(
       model.publicAvailabilityDate,
     ),
@@ -195,12 +220,7 @@ export function getReleaseAgeInDays(
 export function formatPublicAvailabilityDate(
   publicAvailabilityDate: PublicAvailabilityDate,
 ) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(new Date(`${publicAvailabilityDate}T00:00:00.000Z`));
+  return formatDateOnly(publicAvailabilityDate);
 }
 
 export function formatReleaseAge(ageInDays: number) {

@@ -1,4 +1,22 @@
+import type { DossierPhase } from "./dossier.js";
 import type { DynoRuntimeState } from "./dyno.js";
+
+type RuntimeVector3 = {
+  x: number;
+  y: number;
+  z: number;
+};
+
+export type DossierRuntimeTestState = {
+  activeFlagshipPosition?: RuntimeVector3;
+  cameraPosition?: RuntimeVector3;
+  phase?: DossierPhase;
+  pullProgress?: number;
+  sheetHandle?: {
+    x: number;
+    y: number;
+  };
+};
 
 export type NoseReaction = "idle" | "inhale" | "sneeze";
 
@@ -16,9 +34,22 @@ export type NoseRuntimeTestState = {
 };
 
 export type RuntimeTestState = {
+  dossier?: DossierRuntimeTestState;
   dyno?: DynoRuntimeState;
   nose?: NoseRuntimeTestState;
 };
+
+export function publishDossierRuntimeTestState(
+  update: Partial<DossierRuntimeTestState>,
+) {
+  window.__NEW_MODEL_MOTORS_TEST_STATE__ = {
+    ...window.__NEW_MODEL_MOTORS_TEST_STATE__,
+    dossier: {
+      ...window.__NEW_MODEL_MOTORS_TEST_STATE__?.dossier,
+      ...update,
+    },
+  };
+}
 
 export function publishDynoRuntimeTestState(state: DynoRuntimeState) {
   window.__NEW_MODEL_MOTORS_TEST_STATE__ = {

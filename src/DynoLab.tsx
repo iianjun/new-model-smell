@@ -1,26 +1,35 @@
 import { useFrame } from "@react-three/fiber";
 import type { RapierRigidBody } from "@react-three/rapier";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { MathUtils } from "three";
 import {
   DYNO_PIXEL_EFFECTS,
-  DYNO_SHEET_LENGTH,
   DynoLabRig,
   type DynoRigHandles,
+  type DynoSheetInteraction,
   useDynoRigHandles,
 } from "./DynoLabRig";
+import { type DossierController, getDossierPhaseBehavior } from "./dossier";
 import {
   DYNO_ALIGNMENT_POSITION,
   DYNO_ALIGNMENT_YAW,
-  DYNO_CLAMP_SECONDS,
-  DYNO_RUN_SECONDS,
-  type DynoRunPhase,
+  DYNO_SHEET_LENGTH,
+  DYNO_SHEET_RETRACTED_LENGTH,
   type DynoRuntimeState,
   getDynoAlignment,
   getDynoPhaseDefinition,
   INITIAL_DYNO_RUNTIME_STATE,
 } from "./dyno";
-import { publishDynoRuntimeTestState } from "./runtimeTestState";
+import {
+  advanceDynoRun,
+  createInitialDynoRunSnapshot,
+  type DynoRunSnapshot,
+  isDynoSheetPullReady,
+} from "./dynoRun";
+import {
+  publishDossierRuntimeTestState,
+  publishDynoRuntimeTestState,
+} from "./runtimeTestState";
 import { getYawFromQuaternion } from "./showroomLayout";
 import { quaternionFromYaw } from "./useArcadeVehicle";
 import type { DrivingInput } from "./useDrivingInput";
@@ -30,6 +39,7 @@ const CART_REJECTION_RANGE = 2.8;
 type DynoLabProps = {
   activeFlagshipAvailable: boolean;
   activeFlagshipBody: React.RefObject<RapierRigidBody | null>;
+  dossier: DossierController;
   input: React.RefObject<DrivingInput>;
   inspectorCartBody: React.RefObject<RapierRigidBody | null>;
   onStateChange: (state: DynoRuntimeState) => void;
@@ -38,10 +48,7 @@ type DynoLabProps = {
 
 type DynoStateHandles = {
   lastPublishedState: React.RefObject<DynoRuntimeState>;
-  phase: React.RefObject<DynoRunPhase>;
-  phaseStartedAt: React.RefObject<number>;
-  progress: React.RefObject<number>;
-  sheetLength: React.RefObject<number>;
+  run: React.RefObject<DynoRunSnapshot>;
 };
 
 function runtimeStateChanged(
@@ -57,117 +64,52 @@ function runtimeStateChanged(
   );
 }
 
-function transitionDynoPhase(
-  handles: DynoStateHandles,
-  nextPhase: DynoRunPhase,
-  now: number,
-) {
-  if (handles.phase.current === nextPhase) {
-    return;
-  }
+function isInspectorCartNearDyno(body: RapierRigidBody | null) {
+  const position = body?.translation();
 
-  handles.phase.current = nextPhase;
-  handles.phaseStartedAt.current = now;
+  return Boolean(
+    position &&
+      Math.hypot(
+        position.x - DYNO_ALIGNMENT_POSITION.x,
+        position.z - DYNO_ALIGNMENT_POSITION.z,
+      ) <= CART_REJECTION_RANGE,
+  );
 }
 
-function advanceDynoRun({
-  activeFlagshipAvailable,
-  delta,
-  flagshipBody,
-  handles,
-  inspectorCartBody,
-  throttle,
-}: {
-  activeFlagshipAvailable: boolean;
-  delta: number;
-  flagshipBody: RapierRigidBody | null;
-  handles: DynoStateHandles;
-  inspectorCartBody: RapierRigidBody | null;
-  throttle: number;
-}) {
-  const now = performance.now();
-
-  if (!activeFlagshipAvailable || !flagshipBody) {
-    handles.progress.current = 0;
-    handles.sheetLength.current = 0;
-    const cartPosition = inspectorCartBody?.translation();
-    const cartNear =
-      cartPosition &&
-      Math.hypot(
-        cartPosition.x - DYNO_ALIGNMENT_POSITION.x,
-        cartPosition.z - DYNO_ALIGNMENT_POSITION.z,
-      ) <= CART_REJECTION_RANGE;
-
-    transitionDynoPhase(handles, cartNear ? "cart-rejected" : "standby", now);
-    return 1;
+function getFlagshipAlignment(body: RapierRigidBody | null) {
+  if (!body) {
+    return null;
   }
 
-  const position = flagshipBody.translation();
-  const velocity = flagshipBody.linvel();
-  const alignment = getDynoAlignment(
+  const position = body.translation();
+  const velocity = body.linvel();
+
+  return getDynoAlignment(
     position,
-    getYawFromQuaternion(flagshipBody.rotation()),
+    getYawFromQuaternion(body.rotation()),
     Math.hypot(velocity.x, velocity.z),
   );
+}
 
-  if (!getDynoPhaseDefinition(handles.phase.current).vehicleSecured) {
-    transitionDynoPhase(
-      handles,
-      alignment.aligned
-        ? "clamping"
-        : alignment.inApproachZone
-          ? "approach"
-          : "standby",
-      now,
-    );
-  }
+function containFlagship(
+  body: RapierRigidBody,
+  mode: "locked" | "settling",
+  delta: number,
+) {
+  const position = body.translation();
+  const targetPosition =
+    mode === "locked"
+      ? DYNO_ALIGNMENT_POSITION
+      : {
+          x: MathUtils.damp(position.x, DYNO_ALIGNMENT_POSITION.x, 8, delta),
+          y: MathUtils.damp(position.y, DYNO_ALIGNMENT_POSITION.y, 8, delta),
+          z: MathUtils.damp(position.z, DYNO_ALIGNMENT_POSITION.z, 8, delta),
+        };
 
-  if (getDynoPhaseDefinition(handles.phase.current).vehicleSecured) {
-    flagshipBody.setTranslation(
-      {
-        x: MathUtils.damp(position.x, DYNO_ALIGNMENT_POSITION.x, 8, delta),
-        y: MathUtils.damp(position.y, DYNO_ALIGNMENT_POSITION.y, 8, delta),
-        z: MathUtils.damp(position.z, DYNO_ALIGNMENT_POSITION.z, 8, delta),
-      },
-      true,
-    );
-    flagshipBody.setRotation(quaternionFromYaw(DYNO_ALIGNMENT_YAW), true);
-    flagshipBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
-    flagshipBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
-  }
-
-  if (
-    handles.phase.current === "clamping" &&
-    (now - handles.phaseStartedAt.current) / 1_000 >= DYNO_CLAMP_SECONDS
-  ) {
-    transitionDynoPhase(handles, "ready", now);
-  }
-
-  const acceleratorHeld = throttle > 0.1;
-
-  if (
-    (handles.phase.current === "ready" || handles.phase.current === "paused") &&
-    acceleratorHeld
-  ) {
-    transitionDynoPhase(handles, "running", now);
-  } else if (handles.phase.current === "running" && !acceleratorHeld) {
-    transitionDynoPhase(handles, "paused", now);
-  }
-
-  if (handles.phase.current === "running") {
-    handles.progress.current = Math.min(
-      1,
-      handles.progress.current + delta / DYNO_RUN_SECONDS,
-    );
-
-    if (handles.progress.current >= 1) {
-      transitionDynoPhase(handles, "sheet-ready", now);
-    }
-  }
-
-  return getDynoPhaseDefinition(handles.phase.current).vehicleSecured
-    ? 0
-    : alignment.alignmentError;
+  body.setTranslation(targetPosition, true);
+  body.setRotation(quaternionFromYaw(DYNO_ALIGNMENT_YAW), true);
+  body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+  body.setAngvel({ x: 0, y: 0, z: 0 }, true);
 }
 
 function animateDynoRig({
@@ -175,6 +117,7 @@ function animateDynoRig({
   delta,
   elapsedTime,
   intensity,
+  pullProgress,
   rig,
   secured,
   sheetLength,
@@ -183,6 +126,7 @@ function animateDynoRig({
   delta: number;
   elapsedTime: number;
   intensity: number;
+  pullProgress: number;
   rig: DynoRigHandles;
   secured: boolean;
   sheetLength: number;
@@ -250,8 +194,26 @@ function animateDynoRig({
   }
 
   if (rig.sheet.current) {
-    rig.sheet.current.visible = sheetLength > 0.03;
+    rig.sheet.current.visible = sheetLength > DYNO_SHEET_RETRACTED_LENGTH;
     rig.sheet.current.scale.z = sheetLength / DYNO_SHEET_LENGTH;
+    rig.sheet.current.position.y = MathUtils.damp(
+      rig.sheet.current.position.y,
+      1.62 + pullProgress * 0.88,
+      9,
+      delta,
+    );
+    rig.sheet.current.position.z = MathUtils.damp(
+      rig.sheet.current.position.z,
+      -2.14 + pullProgress * 2.55,
+      9,
+      delta,
+    );
+    rig.sheet.current.rotation.x = MathUtils.damp(
+      rig.sheet.current.rotation.x,
+      -pullProgress * 0.22,
+      9,
+      delta,
+    );
   }
 }
 
@@ -264,13 +226,13 @@ function publishRuntimeState({
   handles: DynoStateHandles;
   onStateChange: (state: DynoRuntimeState) => void;
 }) {
+  const snapshot = handles.run.current;
   const runtimeState: DynoRuntimeState = {
     alignmentError: Math.round(alignmentError * 20) / 20,
-    phase: handles.phase.current,
-    progress: Math.round(handles.progress.current * 50) / 50,
-    sheetLength: Math.round(handles.sheetLength.current * 10) / 10,
-    vehicleSecured: getDynoPhaseDefinition(handles.phase.current)
-      .vehicleSecured,
+    phase: snapshot.phase,
+    progress: Math.round(snapshot.progress * 50) / 50,
+    sheetLength: Math.round(snapshot.sheetLength * 100) / 100,
+    vehicleSecured: getDynoPhaseDefinition(snapshot.phase).vehicleSecured,
   };
 
   if (!runtimeStateChanged(handles.lastPublishedState.current, runtimeState)) {
@@ -288,39 +250,57 @@ function publishRuntimeState({
 export function DynoLab({
   activeFlagshipAvailable,
   activeFlagshipBody,
+  dossier,
   input,
   inspectorCartBody,
   onStateChange,
   runIntensity,
 }: DynoLabProps) {
-  const phase = useRef<DynoRunPhase>("standby");
-  const phaseStartedAt = useRef(performance.now());
-  const progress = useRef(0);
-  const sheetLength = useRef(0);
+  const run = useRef(createInitialDynoRunSnapshot(performance.now()));
   const lastPublishedState = useRef(INITIAL_DYNO_RUNTIME_STATE);
+  const sheetPullProgress = useRef(0);
   const rig = useDynoRigHandles();
+  const dossierBehavior = getDossierPhaseBehavior(dossier.phase);
   const handles = {
     lastPublishedState,
-    phase,
-    phaseStartedAt,
-    progress,
-    sheetLength,
+    run,
   };
+  const canPullSheet = useCallback(
+    () => isDynoSheetPullReady(run.current) && dossierBehavior.sheetPullEnabled,
+    [dossierBehavior.sheetPullEnabled],
+  );
+  const updatePullProgress = useCallback((nextProgress: number) => {
+    sheetPullProgress.current = nextProgress;
+
+    if (import.meta.env.DEV) {
+      publishDossierRuntimeTestState({
+        pullProgress: Math.round(nextProgress * 100) / 100,
+      });
+    }
+  }, []);
 
   useFrame((state, frameDelta) => {
     const delta = Math.min(frameDelta, 0.05);
-    const alignmentError = advanceDynoRun({
-      activeFlagshipAvailable,
-      delta,
-      flagshipBody: activeFlagshipBody.current,
-      handles,
-      inspectorCartBody: inspectorCartBody.current,
-      throttle: input.current.throttle,
+    const elapsedDelta = Math.min(frameDelta, 0.25);
+    const flagshipBody = activeFlagshipBody.current;
+    const result = advanceDynoRun(run.current, {
+      acceleratorHeld: input.current.throttle > 0.1,
+      activeFlagshipAvailable: activeFlagshipAvailable && Boolean(flagshipBody),
+      alignment: getFlagshipAlignment(flagshipBody),
+      cartNear: isInspectorCartNearDyno(inspectorCartBody.current),
+      dossierSheetRetracting: dossierBehavior.sheetRetracting,
+      elapsedDelta,
+      now: performance.now(),
     });
-    const phaseDefinition = getDynoPhaseDefinition(handles.phase.current);
-    const secured = phaseDefinition.vehicleSecured;
+    run.current = result.snapshot;
+
+    if (result.containment && flagshipBody) {
+      containFlagship(flagshipBody, result.containment, delta);
+    }
+
+    const phaseDefinition = getDynoPhaseDefinition(result.snapshot.phase);
     const intensityTarget = phaseDefinition.runIntensity(
-      handles.progress.current,
+      result.snapshot.progress,
     );
     runIntensity.current = MathUtils.damp(
       runIntensity.current,
@@ -329,27 +309,44 @@ export function DynoLab({
       delta,
     );
 
-    handles.sheetLength.current =
-      handles.phase.current === "sheet-ready"
-        ? MathUtils.damp(
-            handles.sheetLength.current,
-            DYNO_SHEET_LENGTH,
-            3.4,
-            delta,
-          )
-        : MathUtils.damp(handles.sheetLength.current, 0, 8, delta);
+    if (dossierBehavior.sheetRetracting) {
+      sheetPullProgress.current = MathUtils.damp(
+        sheetPullProgress.current,
+        0,
+        8,
+        delta,
+      );
+    } else if (result.snapshot.phase === "released") {
+      sheetPullProgress.current = 0;
+    }
+
+    if (result.retractionCompleted) {
+      sheetPullProgress.current = 0;
+      dossier.completeRetraction();
+    }
 
     animateDynoRig({
       alert: phaseDefinition.alert,
       delta,
       elapsedTime: state.clock.elapsedTime,
       intensity: runIntensity.current,
+      pullProgress: sheetPullProgress.current,
       rig,
-      secured,
-      sheetLength: handles.sheetLength.current,
+      secured: phaseDefinition.vehicleSecured,
+      sheetLength: result.snapshot.sheetLength,
     });
-    publishRuntimeState({ alignmentError, handles, onStateChange });
+    publishRuntimeState({
+      alignmentError: result.alignmentError,
+      handles,
+      onStateChange,
+    });
   });
 
-  return <DynoLabRig handles={rig} />;
+  const sheetInteraction: DynoSheetInteraction = {
+    canPull: canPullSheet,
+    onOpenDossier: dossier.open,
+    onPullProgress: updatePullProgress,
+  };
+
+  return <DynoLabRig handles={rig} sheetInteraction={sheetInteraction} />;
 }
