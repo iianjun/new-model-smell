@@ -2,9 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests",
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}{ext}",
   fullyParallel: true,
-  // Each worker owns a WebGL context; higher fanout starves frame-timed flows.
-  workers: 4,
+  // Frame-timed WebGL journeys share one graphics context budget.
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
