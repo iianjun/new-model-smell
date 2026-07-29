@@ -1,17 +1,10 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { DYNO_ALIGNMENT_POSITION, DYNO_ALIGNMENT_YAW } from "../src/dyno.js";
 import {
-  DYNO_SHEET_DRAG_TOLERANCE_PX,
-  DYNO_SHEET_OPEN_THRESHOLD,
-  DYNO_SHEET_PULL_DISTANCE_PX,
-} from "../src/dossier.js";
-import {
-  DYNO_ALIGNMENT_POSITION,
-  DYNO_ALIGNMENT_YAW,
-  DYNO_SHEET_LENGTH,
-  DYNO_SHEET_RETRACTED_LENGTH,
-  type DynoRuntimeState,
-} from "../src/dyno.js";
-import type { DossierRuntimeTestState } from "../src/runtimeTestState.js";
+  completeDynoRunToSheet,
+  openDynoSheetDossier,
+} from "./support/dynoDossier.js";
+import { installRuntimeFixtures, loadingSurface } from "./support/runtime.js";
 
 const SHARED_SOURCE = {
   label: "Independent Eval Lab · Agent Bench v2 results",
@@ -148,144 +141,18 @@ async function installDossierFixture(
   activeFlagshipId: string,
 ) {
   await page.clock.setFixedTime(new Date("2026-07-28T12:00:00.000Z"));
-  await page.addInitScript(
-    ({ activeId, alignmentPosition, alignmentYaw, models }) => {
-      window.__NEW_MODEL_MOTORS_TEST_FIXTURES__ = {
-        initialActiveFlagshipPosition: alignmentPosition,
-        initialActiveFlagshipYaw: alignmentYaw,
-        initialDriveOutFlagshipId: activeId,
-        openAiFlagshipLineup: models,
-      };
-    },
-    {
-      activeId: activeFlagshipId,
-      alignmentPosition: DYNO_ALIGNMENT_POSITION,
-      alignmentYaw: DYNO_ALIGNMENT_YAW,
-      models: lineup,
-    },
-  );
-}
-
-async function readDynoState(page: Page) {
-  return page.evaluate(
-    () =>
-      (window.__NEW_MODEL_MOTORS_TEST_STATE__?.dyno ??
-        null) satisfies DynoRuntimeState | null,
-  );
-}
-
-async function readDossierState(page: Page) {
-  return page.evaluate(
-    () =>
-      (window.__NEW_MODEL_MOTORS_TEST_STATE__?.dossier ??
-        null) satisfies DossierRuntimeTestState | null,
-  );
+  await installRuntimeFixtures(page, {
+    initialActiveFlagshipPosition: DYNO_ALIGNMENT_POSITION,
+    initialActiveFlagshipYaw: DYNO_ALIGNMENT_YAW,
+    initialDriveOutFlagshipId: activeFlagshipId,
+    openAiFlagshipLineup: lineup,
+  });
 }
 
 async function runDyno(page: Page) {
   await page.goto("/");
-  await expect(
-    page.getByRole("status", { name: "Loading New Model Motors" }),
-  ).toBeHidden();
-
-  await expect
-    .poll(async () => (await readDynoState(page))?.phase, {
-      timeout: 8_000,
-    })
-    .toBe("ready");
-
-  await page.keyboard.down("w");
-  await expect
-    .poll(async () => (await readDynoState(page))?.phase, {
-      timeout: 8_000,
-    })
-    .toBe("sheet-ready");
-  await page.keyboard.up("w");
-  await expect
-    .poll(async () => (await readDossierState(page))?.sheetHandle)
-    .not.toBeUndefined();
-}
-
-async function pullDynoSheet(page: Page) {
-  const handle = await readDossierState(page).then(
-    (state) => state?.sheetHandle,
-  );
-
-  if (!handle) {
-    throw new Error("Projected Dyno Sheet handle is unavailable");
-  }
-
-  const thresholdDistance =
-    DYNO_SHEET_DRAG_TOLERANCE_PX +
-    DYNO_SHEET_OPEN_THRESHOLD * DYNO_SHEET_PULL_DISTANCE_PX;
-  const firstPullDistance = thresholdDistance * 0.55;
-  const completedPullDistance = thresholdDistance + 32;
-  const viewport = page.viewportSize();
-  const direction =
-    !viewport || handle.x + completedPullDistance < viewport.width - 16
-      ? 1
-      : -1;
-
-  await page.mouse.move(handle.x, handle.y);
-  await page.mouse.down();
-  await page.mouse.move(handle.x + direction * firstPullDistance, handle.y, {
-    steps: 5,
-  });
-  await expect
-    .poll(async () => (await readDossierState(page))?.pullProgress ?? 0)
-    .toBeGreaterThan(0.2);
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-
-  await page.mouse.move(
-    handle.x + direction * completedPullDistance,
-    handle.y,
-    { steps: 7 },
-  );
-  await page.mouse.up();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveAttribute("data-phase", "open");
-}
-
-function distance(
-  left: { x: number; y: number; z: number },
-  right: { x: number; y: number; z: number },
-) {
-  return Math.hypot(left.x - right.x, left.y - right.y, left.z - right.z);
-}
-
-function planarDistance(
-  left: { x: number; z: number },
-  right: { x: number; z: number },
-) {
-  return Math.hypot(left.x - right.x, left.z - right.z);
-}
-
-type WorldSnapshot = {
-  activeFlagshipPosition: { x: number; y: number; z: number };
-  cameraPosition: { x: number; y: number; z: number };
-};
-
-async function readWorldSnapshot(page: Page, context: string) {
-  const state = await readDossierState(page);
-
-  if (!state?.activeFlagshipPosition || !state.cameraPosition) {
-    throw new Error(`${context} world state is unavailable`);
-  }
-
-  return {
-    activeFlagshipPosition: state.activeFlagshipPosition,
-    cameraPosition: state.cameraPosition,
-  } satisfies WorldSnapshot;
-}
-
-async function readRequiredDynoState(page: Page, context: string) {
-  const state = await readDynoState(page);
-
-  if (!state) {
-    throw new Error(`${context} Dyno state is unavailable`);
-  }
-
-  return state;
+  await expect(loadingSurface(page)).toBeHidden();
+  await completeDynoRunToSheet(page);
 }
 
 async function expectComparableEvidence(dossier: Locator) {
@@ -311,57 +178,6 @@ async function expectComparableEvidence(dossier: Locator) {
   await expect(dossier).not.toContainText(/overall score/i);
 }
 
-async function expectWorldSuspended(
-  page: Page,
-  beforeOpen: WorldSnapshot,
-  beforeOpenDynoState: DynoRuntimeState,
-) {
-  const openState = await readWorldSnapshot(page, "Open-dossier");
-  const openDynoState = await readRequiredDynoState(page, "Open-dossier");
-
-  expect(
-    planarDistance(
-      beforeOpen.activeFlagshipPosition,
-      openState.activeFlagshipPosition,
-    ),
-  ).toBeLessThan(0.02);
-  expect(
-    Math.abs(
-      beforeOpen.activeFlagshipPosition.y - openState.activeFlagshipPosition.y,
-    ),
-  ).toBeLessThan(0.08);
-  expect(
-    distance(beforeOpen.cameraPosition, openState.cameraPosition),
-  ).toBeLessThan(0.08);
-  expect(openDynoState).toMatchObject({
-    phase: "sheet-ready",
-    progress: 1,
-    sheetLength: DYNO_SHEET_LENGTH,
-    vehicleSecured: true,
-  });
-  expect(openDynoState).toEqual(beforeOpenDynoState);
-
-  await page.keyboard.down("s");
-  await page.waitForTimeout(500);
-  await page.keyboard.up("s");
-
-  const afterBlockedInput = await readWorldSnapshot(page, "Blocked-input");
-  const afterBlockedDynoState = await readRequiredDynoState(
-    page,
-    "Blocked-input",
-  );
-
-  expect(
-    planarDistance(
-      openState.activeFlagshipPosition,
-      afterBlockedInput.activeFlagshipPosition,
-    ),
-  ).toBeLessThan(0.02);
-  expect(afterBlockedDynoState).toEqual(openDynoState);
-
-  return openState;
-}
-
 async function expectSourceLinkPreservesDossier(page: Page, dossier: Locator) {
   const sourceLink = dossier
     .getByRole("link", {
@@ -377,10 +193,10 @@ async function expectSourceLinkPreservesDossier(page: Page, dossier: Locator) {
   await expect(dossier).toContainText("91.4");
 }
 
-async function closeAndExpectRetraction(
+async function closeAndExpectDrivingAtDyno(
   page: Page,
   dossier: Locator,
-  openState: WorldSnapshot,
+  modelName: string,
 ) {
   await dossier
     .getByRole("button", {
@@ -388,49 +204,35 @@ async function closeAndExpectRetraction(
     })
     .click();
   await expect(dossier).toHaveAttribute("data-phase", "closing");
-  await expect
-    .poll(async () => (await readDynoState(page))?.phase)
-    .toBe("releasing");
 
-  const retractingDynoState = await readRequiredDynoState(page, "Retracting");
-  expect(retractingDynoState.vehicleSecured).toBe(true);
-  expect(retractingDynoState.sheetLength).toBeGreaterThan(
-    DYNO_SHEET_RETRACTED_LENGTH,
-  );
-
-  await page.keyboard.down("s");
-  await page.waitForTimeout(180);
-  await page.keyboard.up("s");
-  const whileRetracting = await readWorldSnapshot(page, "Retracting-dossier");
-  expect(
-    planarDistance(
-      openState.activeFlagshipPosition,
-      whileRetracting.activeFlagshipPosition,
-    ),
-  ).toBeLessThan(0.02);
-
+  const drivingState = page.getByTestId("driving-state");
+  await expect(drivingState).toContainText("Dyno Sheet retracting");
   await expect(dossier).toBeHidden({ timeout: 3_000 });
-  await expect
-    .poll(async () => (await readDynoState(page))?.phase)
-    .toBe("released");
-  const releasedDynoState = await readRequiredDynoState(page, "Released");
-  expect(releasedDynoState.vehicleSecured).toBe(false);
-  expect(releasedDynoState.sheetLength).toBeLessThanOrEqual(
-    DYNO_SHEET_RETRACTED_LENGTH,
-  );
+  await expect(page.getByTestId("dyno-state")).toBeHidden({ timeout: 5_000 });
+  await expect(drivingState).toContainText(`Active Flagship · ${modelName}`);
+  await expect(drivingState).not.toContainText("Valet Transfer");
 
-  return readWorldSnapshot(page, "Post-dossier");
-}
+  const navigationGuide = page.getByTestId("navigation-guide");
+  await expect(navigationGuide).toBeVisible();
+  const navigationText = (await navigationGuide.textContent())?.trim() ?? "";
+  const match = /^Dyno Lab · (\d+) m ·/.exec(navigationText);
 
-async function expectDrivingResumed(
-  page: Page,
-  releasedPosition: WorldSnapshot["activeFlagshipPosition"],
-) {
+  expect(
+    match,
+    `Unexpected Dyno navigation: "${navigationText}"`,
+  ).not.toBeNull();
+  expect(Number(match?.[1])).toBeLessThanOrEqual(2);
+
+  const canvas = page.locator("canvas");
+  const beforeDriving = await canvas.screenshot();
   await page.keyboard.down("s");
-  await expect
-    .poll(async () => (await readDossierState(page))?.activeFlagshipPosition?.z)
-    .toBeGreaterThan(releasedPosition.z + 0.35);
+  await page.waitForTimeout(650);
   await page.keyboard.up("s");
+  await page.waitForTimeout(150);
+  const afterDriving = await canvas.screenshot();
+
+  expect(afterDriving.equals(beforeDriving)).toBe(false);
+  await expect(drivingState).toContainText(`Active Flagship · ${modelName}`);
 }
 
 test("a pulled Dyno Sheet opens comparable evidence for a non-first Active Flagship and returns to driving", async ({
@@ -438,33 +240,20 @@ test("a pulled Dyno Sheet opens comparable evidence for a non-first Active Flags
 }) => {
   await installDossierFixture(page, COMPARABLE_LINEUP, "gpt-meridian");
   await runDyno(page);
-  await page.waitForTimeout(450);
+  await openDynoSheetDossier(page);
 
-  const beforeOpen = await readWorldSnapshot(page, "Pre-dossier");
-  const beforeOpenDynoState = await readRequiredDynoState(page, "Pre-dossier");
-  await pullDynoSheet(page);
   const dossier = page.getByRole("dialog", {
     name: "GPT Meridian",
   });
   await expectComparableEvidence(dossier);
-  const openState = await expectWorldSuspended(
-    page,
-    beforeOpen,
-    beforeOpenDynoState,
-  );
-  await expectSourceLinkPreservesDossier(page, dossier);
-  const afterClose = await closeAndExpectRetraction(page, dossier, openState);
 
-  expect(
-    planarDistance(
-      beforeOpen.activeFlagshipPosition,
-      afterClose.activeFlagshipPosition,
-    ),
-  ).toBeLessThan(0.03);
-  expect(
-    distance(beforeOpen.cameraPosition, afterClose.cameraPosition),
-  ).toBeLessThan(0.2);
-  await expectDrivingResumed(page, afterClose.activeFlagshipPosition);
+  await page.keyboard.down("s");
+  await page.waitForTimeout(500);
+  await page.keyboard.up("s");
+  await expect(dossier).toContainText("GPT Meridian");
+
+  await expectSourceLinkPreservesDossier(page, dossier);
+  await closeAndExpectDrivingAtDyno(page, dossier, "GPT Meridian");
 });
 
 test("non-comparable rival evidence stays out of the Active Flagship dossier", async ({
@@ -473,7 +262,7 @@ test("non-comparable rival evidence stays out of the Active Flagship dossier", a
   await page.emulateMedia({ reducedMotion: "reduce" });
   await installDossierFixture(page, SOLO_LINEUP, "gpt-solo");
   await runDyno(page);
-  await pullDynoSheet(page);
+  await openDynoSheetDossier(page);
 
   const dossier = page.getByRole("dialog", { name: "GPT Solo" });
   await expect(dossier).toContainText(

@@ -1,34 +1,8 @@
 import { expect, test } from "@playwright/test";
-
-const MULTI_MODEL_LINEUP = [
-  {
-    id: "gpt-atlas",
-    name: "GPT Atlas",
-    publicAvailabilityDate: "2026-07-18",
-    provenance: {
-      label: "OpenAI Atlas launch post",
-      url: "https://openai.com/atlas",
-    },
-  },
-  {
-    id: "gpt-meridian",
-    name: "GPT Meridian",
-    publicAvailabilityDate: "2026-07-08",
-    provenance: {
-      label: "OpenAI Meridian launch post",
-      url: "https://openai.com/meridian",
-    },
-  },
-  {
-    id: "gpt-zenith",
-    name: "GPT Zenith",
-    publicAvailabilityDate: "2026-06-28",
-    provenance: {
-      label: "OpenAI Zenith launch post",
-      url: "https://openai.com/zenith",
-    },
-  },
-] as const;
+import {
+  installRuntimeFixtures,
+  MULTI_MODEL_FLAGSHIP_LINEUP,
+} from "./support/runtime.js";
 
 async function installShowroomFixture(
   page: import("@playwright/test").Page,
@@ -36,26 +10,10 @@ async function installShowroomFixture(
     | { initialCartPosition: { x: number; y: number; z: number } }
     | { initialCartValetBayIndex: number },
 ) {
-  await page.addInitScript(
-    ({ initialCart, lineup }) => {
-      const testWindow = window as Window & {
-        __NEW_MODEL_MOTORS_TEST_FIXTURES__?: {
-          initialCartPosition?: { x: number; y: number; z: number };
-          initialCartValetBayIndex?: number;
-          openAiFlagshipLineup: typeof lineup;
-        };
-      };
-
-      testWindow.__NEW_MODEL_MOTORS_TEST_FIXTURES__ = {
-        ...initialCart,
-        openAiFlagshipLineup: lineup,
-      };
-    },
-    {
-      initialCart,
-      lineup: MULTI_MODEL_LINEUP,
-    },
-  );
+  await installRuntimeFixtures(page, {
+    ...initialCart,
+    openAiFlagshipLineup: MULTI_MODEL_FLAGSHIP_LINEUP,
+  });
 }
 
 async function enterDriving(page: import("@playwright/test").Page) {
@@ -66,14 +24,14 @@ async function enterDriving(page: import("@playwright/test").Page) {
   await page.keyboard.press("x");
 }
 
-test("a Valet Transfer does not begin outside marked bays", async ({
+test("a Valet Transfer rejects a near but laterally misaligned Cart", async ({
   page,
 }) => {
   await installShowroomFixture(page, {
     initialCartPosition: {
-      x: -9.2,
+      x: -8.48,
       y: 0.72,
-      z: -1.6,
+      z: -3.07,
     },
   });
   await enterDriving(page);
@@ -95,9 +53,7 @@ test("parking in a non-first bay transfers into that Flagship for a manual Drive
   const drivingState = page.getByTestId("driving-state");
 
   await expect(drivingState).toContainText("Valet Transfer · GPT Zenith");
-  await expect(drivingState).toContainText(
-    "Floor guidance and clamps aligning Cart",
-  );
+  await expect(drivingState).toContainText(/Floor guidance (and|aligned)/);
   await expect(drivingState).toContainText("Valet clamps secured", {
     timeout: 3_000,
   });

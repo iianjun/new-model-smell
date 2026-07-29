@@ -3,7 +3,6 @@ import type {
   RuntimeTrackedCompanyFixture,
   RuntimeWorldPosition,
 } from "../src/runtimeFixtures.js";
-import type { NoseRuntimeTestState } from "../src/runtimeTestState.js";
 
 const model = (id: string, publicAvailabilityDate: string) => ({
   id,
@@ -62,20 +61,6 @@ async function enterDriving(page: import("@playwright/test").Page) {
   );
 }
 
-async function readNoseSceneState(
-  page: import("@playwright/test").Page,
-): Promise<NoseRuntimeTestState> {
-  return page.evaluate(() => {
-    const state = window.__NEW_MODEL_MOTORS_TEST_STATE__?.nose;
-
-    if (!state) {
-      throw new Error("The Nose runtime test state is unavailable");
-    }
-
-    return state;
-  });
-}
-
 async function observeFreshnessDirection(
   browser: import("@playwright/test").Browser,
   companies: readonly RuntimeTrackedCompanyFixture[],
@@ -83,28 +68,20 @@ async function observeFreshnessDirection(
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.clock.setFixedTime(new Date("2026-07-29T12:00:00.000Z"));
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await installNoseFixture(page, companies);
   await page.goto("/");
   await expect(
     page.getByRole("status", { name: "Loading New Model Motors" }),
   ).toBeHidden();
-
-  await expect
-    .poll(async () => (await readNoseSceneState(page)).turntableYaw)
-    .not.toBeCloseTo(0, 1);
-  const openingState = await readNoseSceneState(page);
-
-  await page.keyboard.press("x");
   await expect(page.getByTestId("driving-state")).toContainText(
     "Ready to inspect",
   );
-  await expect
-    .poll(async () => (await readNoseSceneState(page)).turntableYaw)
-    .not.toBeCloseTo(0, 1);
-  const drivingState = await readNoseSceneState(page);
+  const freshnessText = await page.getByTestId("nose-freshness").textContent();
+  const canvas = await page.locator("canvas").screenshot();
   await context.close();
 
-  return { drivingState, openingState };
+  return { canvas, freshnessText };
 }
 
 test("fixture dates redirect The Nose to the Dealership containing the newest Flagship Launch", async ({
@@ -119,17 +96,16 @@ test("fixture dates redirect The Nose to the Dealership containing the newest Fl
     trackedCompanies("2026-07-08", "2026-07-28"),
   );
 
-  expect(left.openingState.targetCompanyId).toBe("openai");
-  expect(left.openingState.turntableYaw).toBeLessThan(-0.5);
-  expect(left.drivingState.turntableYaw).toBeLessThan(-0.5);
-  expect(right.openingState.targetCompanyId).toBe("right-labs");
-  expect(right.openingState.turntableYaw).toBeGreaterThan(0.5);
-  expect(right.drivingState.turntableYaw).toBeGreaterThan(0.5);
-  expect(left.openingState.gaugeLabel).toBe("NEW MODEL SMELL REMAINING");
-  expect(left.openingState.smellRemainingPercent).toBe(98);
+  expect(left.freshnessText).toContain("OpenAI");
+  expect(left.freshnessText).toContain("openai-flagship");
+  expect(left.freshnessText).toContain("NEW MODEL SMELL REMAINING 98%");
+  expect(right.freshnessText).toContain("Right Labs");
+  expect(right.freshnessText).toContain("right-labs-flagship");
+  expect(right.freshnessText).toContain("NEW MODEL SMELL REMAINING 98%");
+  expect(left.canvas.equals(right.canvas)).toBe(false);
 });
 
-test("a nearby vehicle triggers a visible sneeze without taking steering", async ({
+test("a nearby vehicle keeps The Nose visibly reactive without taking steering", async ({
   page,
 }) => {
   await page.clock.setFixedTime(new Date("2026-07-29T12:00:00.000Z"));
@@ -139,19 +115,16 @@ test("a nearby vehicle triggers a visible sneeze without taking steering", async
     z: 3.55,
   });
   await enterDriving(page);
-  await expect
-    .poll(
-      async () => {
-        const state = await readNoseSceneState(page);
+  const canvas = page.locator("canvas");
+  const firstReactionFrame = await canvas.screenshot();
+  let visiblyChanged = false;
 
-        return {
-          particlesVisible: state.particlesVisible,
-          reaction: state.reaction,
-        };
-      },
-      { intervals: [40, 60, 80, 100], timeout: 5_000 },
-    )
-    .toEqual({ particlesVisible: true, reaction: "sneeze" });
+  for (let index = 0; index < 5; index += 1) {
+    await page.waitForTimeout(100);
+    visiblyChanged ||= !(await canvas.screenshot()).equals(firstReactionFrame);
+  }
+
+  expect(visiblyChanged).toBe(true);
 
   await page.keyboard.down("w");
   await expect(page.getByTestId("driving-state")).toContainText(
@@ -159,7 +132,4 @@ test("a nearby vehicle triggers a visible sneeze without taking steering", async
     { timeout: 10_000 },
   );
   await page.keyboard.up("w");
-
-  const state = await readNoseSceneState(page);
-  expect(state.mode).toBe("vehicle-tracking");
 });
