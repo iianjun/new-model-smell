@@ -70,11 +70,11 @@ The shared Model Vehicle uses the proportions of a broad, angular 1990s concept 
 
 ### Inspector Cart
 
-The Inspector Cart combines the compact proportions of an airport baggage tug and a golf cart. It has a short, tall body, deliberately small wheels, warm-ivory and safety-orange paint, a roof-mounted rotating smell detector, and a loosely mounted inspection clipboard. Its industrial reverse alarm treats the tiny vehicle with unnecessary seriousness. The Cart is visibly small enough to fit inside the Model Vehicle's exaggerated trunk during a Valet Transfer, making the move from the Cart to the broad, low Flagship immediately legible.
+The Inspector Cart combines the compact proportions of an airport baggage tug and a golf cart. It has a short, tall body, deliberately small wheels, warm-ivory and safety-orange paint, a roof-mounted rotating smell detector, and a loosely mounted inspection clipboard. The Cart is visibly small enough to fit inside the Model Vehicle's exaggerated trunk during a Valet Transfer, making the move from the Cart to the broad, low Flagship immediately legible.
 
 ## Driving feel
 
-Both vehicles use forgiving arcade physics rather than realistic simulation. The Inspector Cart is slow, turns tightly, and visibly wobbles. The Model Vehicle is faster, heavier, turns more broadly, and permits a small controlled drift. Collisions bounce without damage or failure. The physical chassis stays upright by locking pitch and roll, while vehicles that fall out of the world or become irretrievably trapped recover automatically.
+Both vehicles use forgiving arcade physics rather than realistic simulation. The Inspector Cart is slow, turns tightly, and visibly wobbles. The Model Vehicle is faster, heavier, turns more broadly, and permits a small controlled drift. Each vehicle reverses silently at the same top speed it reaches going forward. Collisions bounce without damage or failure. The physical chassis stays upright by locking pitch and roll, while vehicles that fall out of the world or become irretrievably trapped recover automatically.
 
 `WASD` and the arrow keys provide the same accelerate, reverse, and steering controls; reverse direction requires no manual gear change. `Space` provides a short handbrake. Different vehicle characters must come from tuned acceleration, steering, grip, suspension response, and sound without introducing a second control scheme.
 
@@ -86,7 +86,7 @@ This first concept tests warm ivory architecture, charcoal asphalt, safety-orang
 
 ## The Nose
 
-The center landmark is a giant painted enamel nose presented like an expensive automotive sculpture on a matte mechanical turntable. It rotates toward the Dealership whose Flagship Lineup contains the newest Flagship Launch and displays `NEW MODEL SMELL REMAINING` on a physical gauge. It periodically inhales visible pixel scent particles. When a visitor drives close, it tracks the vehicle and may produce an exaggerated sneeze, making the live freshness indicator an interactive town object rather than decorative text.
+The center landmark is a giant painted enamel nose presented like an expensive automotive sculpture on a matte mechanical turntable. It faces the Dealership whose Flagship Lineup contains the newest Flagship Launch and displays `NEW MODEL SMELL REMAINING` on a physical gauge. Its inhale and exaggerated sneeze belong to the opening reveal; once driving begins, the sculpture holds its freshness orientation without tracking or reacting to the visitor.
 
 ## Exit criteria
 
