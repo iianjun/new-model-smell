@@ -495,7 +495,7 @@ function App() {
   const previousDynoPhase = useRef(dynoState.phase);
 
   useEffect(() => {
-    setDynoRunIntensity(dynoState.phase === "running", dynoState.progress);
+    setDynoRunIntensity(dynoState.phase, dynoState.progress);
   }, [dynoState.phase, dynoState.progress, setDynoRunIntensity]);
 
   useEffect(() => {

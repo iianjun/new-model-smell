@@ -1,5 +1,10 @@
 import { expect, type Page, test } from "@playwright/test";
-import { DYNO_ALIGNMENT_POSITION, DYNO_ALIGNMENT_YAW } from "../src/dyno.js";
+import {
+  DYNO_ALIGNMENT_POSITION,
+  DYNO_ALIGNMENT_YAW,
+  DYNO_DISPLAY_LAYOUT,
+  getDynoDisplayLineWorldY,
+} from "../src/dyno.js";
 import { installRuntimeFixtures } from "./support/runtime.js";
 
 const DYNO_FLAGSHIP = [
@@ -59,6 +64,7 @@ async function readDynoAudioState(page: Page) {
       window as Window & {
         __dynoAudioProbe?: {
           frequencyTargets: number[];
+          gainTimeConstants: number[];
           gainTargets: number[];
           oscillatorStarts: number;
         };
@@ -68,12 +74,21 @@ async function readDynoAudioState(page: Page) {
     return probe
       ? {
           frequencyTargets: [...probe.frequencyTargets],
+          gainTimeConstants: [...probe.gainTimeConstants],
           gainTargets: [...probe.gainTargets],
           oscillatorStarts: probe.oscillatorStarts,
         }
       : null;
   });
 }
+
+test("both Dyno instruction lines clear the roof instead of being clipped", () => {
+  for (const lineY of DYNO_DISPLAY_LAYOUT.instructionLineY) {
+    expect(getDynoDisplayLineWorldY(lineY)).toBeGreaterThan(
+      DYNO_DISPLAY_LAYOUT.roofTopY,
+    );
+  }
+});
 
 test("an aligned Active Flagship runs on held acceleration, pauses on release, and prints a long Dyno Sheet", async ({
   page,
@@ -115,6 +130,7 @@ test("optional Dyno sound rises with the visible run and stops on release", asyn
   await page.addInitScript(() => {
     const probe = {
       frequencyTargets: [] as number[],
+      gainTimeConstants: [] as number[],
       gainTargets: [] as number[],
       oscillatorStarts: 0,
     };
@@ -131,6 +147,7 @@ test("optional Dyno sound rises with the visible run and stops on release", asyn
 
       gain.gain.setTargetAtTime = (target, startTime, timeConstant) => {
         probe.gainTargets.push(target);
+        probe.gainTimeConstants.push(timeConstant);
         return nativeSetTargetAtTime(target, startTime, timeConstant);
       };
 
@@ -198,6 +215,58 @@ test("optional Dyno sound rises with the visible run and stops on release", asyn
   await expect(dynoState).toHaveAttribute("data-phase", "paused");
   const stoppedSound = await readDynoAudioState(page);
   expect(stoppedSound?.gainTargets.at(-1)).toBe(0);
+});
+
+test("Dyno sound winds down after reaching 100% instead of cutting out", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const probe = {
+      frequencyTargets: [] as number[],
+      gainTimeConstants: [] as number[],
+      gainTargets: [] as number[],
+      oscillatorStarts: 0,
+    };
+    const instrumentedWindow = window as Window & {
+      __dynoAudioProbe?: typeof probe;
+    };
+    const nativeCreateGain = AudioContext.prototype.createGain;
+
+    instrumentedWindow.__dynoAudioProbe = probe;
+    AudioContext.prototype.createGain = function createGain() {
+      const gain = nativeCreateGain.call(this);
+      const nativeSetTargetAtTime = gain.gain.setTargetAtTime.bind(gain.gain);
+
+      gain.gain.setTargetAtTime = (target, startTime, timeConstant) => {
+        probe.gainTargets.push(target);
+        probe.gainTimeConstants.push(timeConstant);
+        return nativeSetTargetAtTime(target, startTime, timeConstant);
+      };
+
+      return gain;
+    };
+  });
+  await installDynoFixture(page);
+  await enterDriving(page);
+
+  const dynoState = page.getByTestId("dyno-state");
+  await expect(dynoState).toHaveAttribute("data-phase", "ready", {
+    timeout: 8_000,
+  });
+  await page.getByRole("button", { name: "Enable Motor Town audio" }).click();
+  await page.keyboard.down("w");
+  await expect(dynoState).toHaveAttribute("data-phase", "sheet-printing", {
+    timeout: 8_000,
+  });
+  await page.keyboard.up("w");
+
+  const completedSound = await readDynoAudioState(page);
+  const lastZeroGainIndex = completedSound?.gainTargets.lastIndexOf(0) ?? -1;
+
+  expect(lastZeroGainIndex).toBeGreaterThanOrEqual(0);
+  expect(
+    completedSound?.gainTimeConstants[lastZeroGainIndex],
+  ).toBeGreaterThanOrEqual(0.4);
 });
 
 test("the Dyno rejects a near but laterally misaligned Active Flagship", async ({

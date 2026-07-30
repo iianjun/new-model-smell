@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AUDIO_RUNTIME_ASSETS } from "./assetCatalog";
+import type { DynoRunPhase } from "./dyno";
 
 export type MotorTownAudioCue = keyof typeof AUDIO_RUNTIME_ASSETS;
 
@@ -131,15 +132,25 @@ export function useProgressiveAudio() {
   );
 
   const setDynoRunIntensity = useCallback(
-    (active: boolean, intensity: number) => {
+    (phase: DynoRunPhase, intensity: number) => {
       const existing = dynoSynthesis.current;
+      const running = phase === "running";
 
-      if (!active || !enabledRef.current) {
+      if (!running || !enabledRef.current) {
         if (existing) {
+          const completed =
+            enabledRef.current &&
+            (phase === "sheet-printing" || phase === "sheet-ready");
+          const now = existing.context.currentTime;
+
+          if (completed) {
+            existing.motor.frequency.setTargetAtTime(72, now, 0.55);
+            existing.roller.frequency.setTargetAtTime(118, now, 0.55);
+          }
           existing.output.gain.setTargetAtTime(
             0,
-            existing.context.currentTime,
-            0.025,
+            now,
+            completed ? 0.55 : 0.025,
           );
         }
 
