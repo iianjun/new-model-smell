@@ -60,8 +60,6 @@ export function useDrivingInput(enabled: boolean) {
   const enabledRef = useRef(enabled);
   const input = useRef<DrivingInput>(createDrivingInput());
   const pressedKeys = useRef(new Set<string>());
-  const reverseAlarmTimer = useRef<number | undefined>(undefined);
-  const reverseAlarmContext = useRef<AudioContext | null>(null);
 
   enabledRef.current = enabled;
 
@@ -72,72 +70,15 @@ export function useDrivingInput(enabled: boolean) {
 
     pressedKeys.current.clear();
     input.current = createDrivingInput();
-    window.clearInterval(reverseAlarmTimer.current);
-    reverseAlarmTimer.current = undefined;
   }, [enabled]);
 
   useEffect(() => {
     pressedKeys.current.clear();
     input.current = createDrivingInput();
 
-    const soundReverseAlarm = () => {
-      try {
-        let context = reverseAlarmContext.current;
-
-        if (!context) {
-          context = new AudioContext();
-          reverseAlarmContext.current = context;
-        }
-
-        if (context.state === "suspended") {
-          void context.resume();
-        }
-
-        const oscillator = context.createOscillator();
-        const gain = context.createGain();
-        const startsAt = context.currentTime + 0.01;
-
-        oscillator.type = "square";
-        oscillator.frequency.setValueAtTime(620, startsAt);
-        gain.gain.setValueAtTime(0.0001, startsAt);
-        gain.gain.exponentialRampToValueAtTime(0.045, startsAt + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startsAt + 0.13);
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(startsAt);
-        oscillator.stop(startsAt + 0.14);
-        oscillator.addEventListener("ended", () => {
-          oscillator.disconnect();
-          gain.disconnect();
-        });
-      } catch {
-        // Audio is progressive enhancement; driving must still work without it.
-      }
-    };
-
-    const stopReverseAlarm = () => {
-      window.clearInterval(reverseAlarmTimer.current);
-      reverseAlarmTimer.current = undefined;
-    };
-
-    const updateReverseAlarm = () => {
-      const pressed = pressedKeys.current;
-      const isAccelerating = pressed.has("KeyW") || pressed.has("ArrowUp");
-      const isReversing =
-        !isAccelerating && (pressed.has("KeyS") || pressed.has("ArrowDown"));
-
-      if (isReversing && reverseAlarmTimer.current === undefined) {
-        soundReverseAlarm();
-        reverseAlarmTimer.current = window.setInterval(soundReverseAlarm, 720);
-      } else if (!isReversing) {
-        stopReverseAlarm();
-      }
-    };
-
     const updateInput = () => {
       if (!enabledRef.current) {
         input.current = createDrivingInput();
-        stopReverseAlarm();
         return;
       }
 
@@ -149,7 +90,6 @@ export function useDrivingInput(enabled: boolean) {
 
       input.current.throttle = Number(accelerate) - Number(reverse);
       input.current.steer = Number(left) - Number(right);
-      updateReverseAlarm();
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -192,7 +132,6 @@ export function useDrivingInput(enabled: boolean) {
     const clearInput = () => {
       pressedKeys.current.clear();
       input.current = createDrivingInput();
-      stopReverseAlarm();
       updateInput();
     };
 
@@ -204,10 +143,6 @@ export function useDrivingInput(enabled: boolean) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", clearInput);
-      stopReverseAlarm();
-      const audioContext = reverseAlarmContext.current;
-      reverseAlarmContext.current = null;
-      void audioContext?.close();
     };
   }, []);
 
