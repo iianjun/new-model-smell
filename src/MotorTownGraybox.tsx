@@ -12,12 +12,10 @@ import {
   TOWN_BUILDING_KIT,
   type TownBuildingTransform,
   TownPropKit,
-  type TownRoadSegment,
   type TownTreeTransform,
 } from "./TownPropKit";
+import { MOTOR_TOWN_ROADS } from "./townRoadNetwork";
 import { MOTOR_TOWN_PALETTE } from "./visualLanguage";
-
-type GroundPoint = readonly [x: number, z: number];
 
 const {
   charcoal: CHARCOAL,
@@ -26,11 +24,6 @@ const {
   safetyOrange: SAFETY_ORANGE,
   warmIvory: WARM_IVORY,
 } = MOTOR_TOWN_PALETTE;
-const TOWN_POINTS = {
-  left: [-8.4, -3.5] as GroundPoint,
-  right: [8.4, -3.5] as GroundPoint,
-  start: [0, 8.5] as GroundPoint,
-};
 
 const ROAD_CLOSURES: readonly {
   position: [number, number, number];
@@ -39,15 +32,6 @@ const ROAD_CLOSURES: readonly {
   { position: [0, 0, -8.25], rotation: 0 },
   { position: [-12.25, 0, -6.15], rotation: -Math.PI / 3 },
   { position: [12.25, 0, -6.15], rotation: Math.PI / 3 },
-];
-
-const ROADS: readonly TownRoadSegment[] = [
-  { start: TOWN_POINTS.start, end: TOWN_POINTS.left },
-  { start: TOWN_POINTS.left, end: TOWN_POINTS.right },
-  { start: TOWN_POINTS.right, end: TOWN_POINTS.start },
-  { start: [0, -3.5], end: [0, -9], width: 3.4 },
-  { start: TOWN_POINTS.left, end: [-13, -6.6], width: 3.4 },
-  { start: TOWN_POINTS.right, end: [13, -6.6], width: 3.4 },
 ];
 
 type BoundaryWallProps = {
@@ -373,7 +357,7 @@ export function MotorTownGraybox({
       <TownPropKit
         buildings={BACKGROUND_BUILDINGS}
         roadClosures={ROAD_CLOSURES}
-        roads={ROADS}
+        roads={MOTOR_TOWN_ROADS}
         trees={TOWN_TREES}
       />
       <DistantDealershipSilhouettes />
