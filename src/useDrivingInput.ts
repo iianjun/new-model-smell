@@ -157,14 +157,13 @@ export function useDrivingInput(enabled: boolean) {
         return;
       }
 
-      event.preventDefault();
-
       if (isEditableTarget(event.target)) {
         pressedKeys.current.delete(event.code);
         updateInput();
         return;
       }
 
+      event.preventDefault();
       pressedKeys.current.add(event.code);
 
       if (event.code === "Space" && !event.repeat) {
@@ -179,14 +178,13 @@ export function useDrivingInput(enabled: boolean) {
         return;
       }
 
-      event.preventDefault();
-
       if (isEditableTarget(event.target)) {
         pressedKeys.current.delete(event.code);
         updateInput();
         return;
       }
 
+      event.preventDefault();
       pressedKeys.current.delete(event.code);
       updateInput();
     };

@@ -21,6 +21,7 @@ import {
   getInitialActiveFlagshipPosition,
   getInitialActiveFlagshipYaw,
 } from "./flagshipLineup";
+import type { GraphicsQualityPreset } from "./graphicsQuality";
 import { InspectorCart } from "./InspectorCart";
 import { LIGHT_SIGNATURES } from "./ModelVehicleModel";
 import { MotorTownGraybox } from "./MotorTownGraybox";
@@ -39,6 +40,7 @@ type MotorTownCanvasProps = {
   activeFlagship: FlagshipModel | null;
   dossier: DossierController;
   experience: ExperienceState;
+  graphicsDpr: GraphicsQualityPreset["dpr"];
   initialCartPosition: WorldPosition;
   onDriveOutComplete: () => void;
   onDynoStateChange: (state: DynoRuntimeState) => void;
@@ -56,6 +58,8 @@ type MotorTownCanvasProps = {
   skipRequested: boolean;
   trackedCompanies: readonly TrackedCompany[];
 };
+
+type MotorTownWorldProps = Omit<MotorTownCanvasProps, "graphicsDpr">;
 
 function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
   useEffect(() => {
@@ -112,7 +116,7 @@ function MotorTownWorld({
   openingStage,
   skipRequested,
   trackedCompanies,
-}: MotorTownCanvasProps) {
+}: MotorTownWorldProps) {
   const inspectorCartBody = useRef<RapierRigidBody>(null);
   const activeFlagshipBody = useRef<RapierRigidBody>(null);
   const dynoRunIntensity = useRef(0);
@@ -253,7 +257,10 @@ function MotorTownWorld({
   );
 }
 
-export default function MotorTownCanvas(props: MotorTownCanvasProps) {
+export default function MotorTownCanvas({
+  graphicsDpr,
+  ...props
+}: MotorTownCanvasProps) {
   return (
     <Canvas
       camera={{
@@ -262,7 +269,7 @@ export default function MotorTownCanvas(props: MotorTownCanvasProps) {
         near: 0.1,
         position: [4.2, 9.5, 18],
       }}
-      dpr={[1, 2]}
+      dpr={graphicsDpr}
       gl={{
         antialias: true,
         powerPreference: "high-performance",

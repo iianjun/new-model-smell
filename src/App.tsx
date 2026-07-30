@@ -37,6 +37,13 @@ import {
   type TrackedCompany,
   type WorldPosition,
 } from "./flagshipLineup";
+import { GraphicsQualitySettings } from "./GraphicsQualitySettings";
+import {
+  type GraphicsQualityId,
+  getGraphicsQualityPreset,
+  readGraphicsQualityPreference,
+  writeGraphicsQualityPreference,
+} from "./graphicsQuality";
 import { ModelDossier } from "./ModelDossier";
 import {
   type FlagshipLaunchFreshness,
@@ -79,6 +86,8 @@ type RuntimeInterfaceProps = {
   audioEnabled: boolean;
   dynoState: DynoRuntimeState;
   experience: ExperienceState;
+  graphicsQuality: GraphicsQualityId;
+  onGraphicsQualityChange: (quality: GraphicsQualityId) => void;
   openingEntry: OpeningEntry;
   openingStage: OpeningStage;
   noseFreshness: FlagshipLaunchFreshness;
@@ -93,6 +102,8 @@ function RuntimeInterface({
   audioEnabled,
   dynoState,
   experience,
+  graphicsQuality,
+  onGraphicsQualityChange,
   openingEntry,
   openingStage,
   noseFreshness,
@@ -178,19 +189,25 @@ function RuntimeInterface({
         <h1>New Model Motors</h1>
       </header>
 
-      <button
-        aria-label={`${audioEnabled ? "Disable" : "Enable"} Motor Town audio`}
-        aria-pressed={audioEnabled}
-        className="audio-control"
-        onClick={(event) => {
-          toggleAudio();
-          event.currentTarget.blur();
-        }}
-        type="button"
-      >
-        <span aria-hidden="true">{audioEnabled ? "◖))" : "◖×"}</span>
-        Audio {audioEnabled ? "on" : "off"}
-      </button>
+      <div className="runtime-controls">
+        <button
+          aria-label={`${audioEnabled ? "Disable" : "Enable"} Motor Town audio`}
+          aria-pressed={audioEnabled}
+          className="audio-control"
+          onClick={(event) => {
+            toggleAudio();
+            event.currentTarget.blur();
+          }}
+          type="button"
+        >
+          <span aria-hidden="true">{audioEnabled ? "◖))" : "◖×"}</span>
+          Audio {audioEnabled ? "on" : "off"}
+        </button>
+        <GraphicsQualitySettings
+          onChange={onGraphicsQualityChange}
+          selectedQuality={graphicsQuality}
+        />
+      </div>
 
       <aside
         aria-label={
@@ -303,6 +320,10 @@ function App() {
     setDynoRunIntensity,
     toggle: toggleAudio,
   } = useProgressiveAudio();
+  const [graphicsQuality, setGraphicsQuality] = useState<GraphicsQualityId>(
+    readGraphicsQualityPreference,
+  );
+  const graphicsQualityPreset = getGraphicsQualityPreset(graphicsQuality);
   const [trackedCompanies] =
     useState<readonly TrackedCompany[]>(getTrackedCompanies);
   const noseFreshness = useMemo(
@@ -374,6 +395,10 @@ function App() {
   const [showroomVisible, setShowroomVisible] = useState(() =>
     isInOpenAiShowroomRevealZone(initialCartPosition),
   );
+  const changeGraphicsQuality = useCallback((quality: GraphicsQualityId) => {
+    setGraphicsQuality(quality);
+    writeGraphicsQualityPreference(quality);
+  }, []);
   const markRuntimeReady = useCallback(() => {
     isReadyRef.current = true;
     setIsReady(true);
@@ -486,12 +511,17 @@ function App() {
 
   return (
     <main className="app-shell">
-      <div className="world-canvas" aria-hidden="true">
+      <div
+        className="world-canvas"
+        aria-hidden="true"
+        data-graphics-quality={graphicsQuality}
+      >
         <Suspense fallback={null}>
           <MotorTownCanvas
             activeFlagship={activeFlagship}
             dossier={dossier}
             experience={experience}
+            graphicsDpr={graphicsQualityPreset.dpr}
             initialCartPosition={initialCartPosition}
             onDriveOutComplete={completeDriveOut}
             onDynoStateChange={setDynoState}
@@ -519,7 +549,9 @@ function App() {
             audioEnabled={audioEnabled}
             dynoState={dynoState}
             experience={experience}
+            graphicsQuality={graphicsQuality}
             noseFreshness={noseFreshness}
+            onGraphicsQualityChange={changeGraphicsQuality}
             openingEntry={openingEntry}
             openingStage={openingStage}
             openAiFlagshipLineup={openAiFlagshipLineup}

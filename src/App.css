@@ -125,10 +125,18 @@
   pointer-events: none;
 }
 
-.audio-control {
+.runtime-controls {
   position: absolute;
   top: clamp(6.1rem, 10vw, 7.4rem);
   right: clamp(1.25rem, 3vw, 2.5rem);
+  display: grid;
+  gap: 0.45rem;
+  justify-items: end;
+  pointer-events: auto;
+}
+
+.audio-control,
+.settings-control {
   display: inline-flex;
   gap: 0.45rem;
   align-items: center;
@@ -150,9 +158,146 @@
   background: #d7dfae;
 }
 
-.audio-control:focus-visible {
+.audio-control:focus-visible,
+.settings-control:focus-visible,
+.graphics-settings-surface button:focus-visible,
+.graphics-settings-surface input:focus-visible {
   outline: 0.2rem solid #ef6d32;
   outline-offset: 0.16rem;
+}
+
+.settings-control[aria-expanded="true"] {
+  background: #f5c85e;
+}
+
+.graphics-settings-surface {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  width: min(23rem, calc(100vw - 2.5rem));
+  padding: 1rem;
+  border: 2px solid #252723;
+  color: #252723;
+  background: rgba(242, 231, 210, 0.98);
+  box-shadow: 0.5rem 0.5rem 0 rgba(37, 39, 35, 0.24);
+  backdrop-filter: blur(0.55rem);
+}
+
+.graphics-settings-surface > header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(37, 39, 35, 0.38);
+}
+
+.graphics-settings-surface > header p,
+.graphics-settings-surface legend,
+.graphics-settings-note {
+  margin: 0;
+  font-size: 0.6rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.graphics-settings-surface > header p,
+.graphics-settings-note {
+  color: rgba(37, 39, 35, 0.62);
+}
+
+.graphics-settings-surface h2 {
+  margin: 0.12rem 0 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.graphics-settings-close {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid #252723;
+  place-items: center;
+  color: #252723;
+  background: #f5c85e;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.graphics-settings-explainer {
+  margin: 0.8rem 0;
+  color: rgba(37, 39, 35, 0.78);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.graphics-settings-surface fieldset {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.graphics-settings-surface legend {
+  margin-bottom: 0.45rem;
+}
+
+.graphics-settings-surface label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.7rem;
+  border: 1px solid rgba(37, 39, 35, 0.36);
+  background: rgba(255, 252, 244, 0.68);
+  cursor: pointer;
+}
+
+.graphics-settings-surface label[data-selected="true"] {
+  border-color: #252723;
+  box-shadow: inset 0.28rem 0 0 #ef6d32;
+}
+
+.graphics-settings-surface input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0.12rem 0 0;
+  accent-color: #ad451e;
+}
+
+.graphics-settings-surface label span {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.graphics-quality-title {
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.graphics-quality-description {
+  color: rgba(37, 39, 35, 0.68);
+  font-size: 0.64rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.graphics-settings-note {
+  margin-top: 0.75rem;
+  letter-spacing: 0.08em;
 }
 
 .title-lockup {
