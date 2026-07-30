@@ -1,6 +1,8 @@
 # Add graphics quality settings
 
-Status: `backlog`
+Status: `done`
+
+Evidence: [browser coverage](../../tests/graphics-quality.spec.ts) · [desktop visual baseline](../../tests/__screenshots__/graphics-quality.spec.ts/graphics-settings.png)
 
 ## Problem Statement
 
@@ -14,10 +16,10 @@ Add an accessible settings button to the runtime interface that lets a visitor c
 
 ## Acceptance Criteria
 
-- [ ] A keyboard-accessible settings button opens and closes a crisp DOM-based settings surface without interrupting or resetting the current driving state.
-- [ ] The settings surface explains graphics quality in performance terms rather than treating low-resolution output as the project's visual identity.
-- [ ] The default quality preserves display-native rendering up to DPR 2 and antialiased edges.
-- [ ] At least one lower-cost quality option reduces GPU rendering work while retaining the approved low-poly forms, palette, and materials.
-- [ ] Changing quality applies predictably to the live world, including any renderer recreation required by constructor-only settings.
-- [ ] The selected quality persists locally and is restored on the next visit.
-- [ ] Browser tests cover opening the settings surface, changing quality, preserving driving state, and restoring the saved choice.
+- [x] A keyboard-accessible settings button opens and closes a crisp DOM-based settings surface without interrupting or resetting the current driving state.
+- [x] The settings surface explains graphics quality in performance terms rather than treating low-resolution output as the project's visual identity.
+- [x] The default quality preserves display-native rendering up to DPR 2 and antialiased edges.
+- [x] At least one lower-cost quality option reduces GPU rendering work while retaining the approved low-poly forms, palette, and materials.
+- [x] Changing quality applies predictably to the live world, including any renderer recreation required by constructor-only settings.
+- [x] The selected quality persists locally and is restored on the next visit.
+- [x] Browser tests cover opening the settings surface, changing quality, preserving driving state, and restoring the saved choice.
