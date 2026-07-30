@@ -55,15 +55,21 @@ async function readVisibleProgress(page: Page) {
 
 async function readDynoAudioState(page: Page) {
   return page.evaluate(() => {
-    const audio = (window as Window & { __dynoAudio?: HTMLAudioElement })
-      .__dynoAudio;
+    const probe = (
+      window as Window & {
+        __dynoAudioProbe?: {
+          frequencyTargets: number[];
+          gainTargets: number[];
+          oscillatorStarts: number;
+        };
+      }
+    ).__dynoAudioProbe;
 
-    return audio
+    return probe
       ? {
-          loop: audio.loop,
-          paused: audio.paused,
-          playbackRate: audio.playbackRate,
-          volume: audio.volume,
+          frequencyTargets: [...probe.frequencyTargets],
+          gainTargets: [...probe.gainTargets],
+          oscillatorStarts: probe.oscillatorStarts,
         }
       : null;
   });
@@ -107,19 +113,50 @@ test("optional Dyno sound rises with the visible run and stops on release", asyn
   page,
 }) => {
   await page.addInitScript(() => {
-    const NativeAudio = window.Audio;
-    const instrumentedWindow = window as Window & {
-      __dynoAudio?: HTMLAudioElement;
+    const probe = {
+      frequencyTargets: [] as number[],
+      gainTargets: [] as number[],
+      oscillatorStarts: 0,
     };
+    const instrumentedWindow = window as Window & {
+      __dynoAudioProbe?: typeof probe;
+    };
+    const nativeCreateGain = AudioContext.prototype.createGain;
+    const nativeCreateOscillator = AudioContext.prototype.createOscillator;
 
-    window.Audio = class extends NativeAudio {
-      constructor(source?: string) {
-        super(source);
+    instrumentedWindow.__dynoAudioProbe = probe;
+    AudioContext.prototype.createGain = function createGain() {
+      const gain = nativeCreateGain.call(this);
+      const nativeSetTargetAtTime = gain.gain.setTargetAtTime.bind(gain.gain);
 
-        if (source?.includes("click2.ogg")) {
-          instrumentedWindow.__dynoAudio = this;
-        }
-      }
+      gain.gain.setTargetAtTime = (target, startTime, timeConstant) => {
+        probe.gainTargets.push(target);
+        return nativeSetTargetAtTime(target, startTime, timeConstant);
+      };
+
+      return gain;
+    };
+    AudioContext.prototype.createOscillator = function createOscillator() {
+      const oscillator = nativeCreateOscillator.call(this);
+      const nativeSetTargetAtTime = oscillator.frequency.setTargetAtTime.bind(
+        oscillator.frequency,
+      );
+      const nativeStart = oscillator.start.bind(oscillator);
+
+      oscillator.frequency.setTargetAtTime = (
+        target,
+        startTime,
+        timeConstant,
+      ) => {
+        probe.frequencyTargets.push(target);
+        return nativeSetTargetAtTime(target, startTime, timeConstant);
+      };
+      oscillator.start = (when) => {
+        probe.oscillatorStarts += 1;
+        nativeStart(when);
+      };
+
+      return oscillator;
     };
   });
   await installDynoFixture(page);
@@ -134,6 +171,7 @@ test("optional Dyno sound rises with the visible run and stops on release", asyn
     force: true,
     position: { x: 640, y: 360 },
   });
+  const primedSound = await readDynoAudioState(page);
 
   await page.keyboard.down("w");
   await expect.poll(() => readVisibleProgress(page)).toBeGreaterThan(15);
@@ -148,22 +186,18 @@ test("optional Dyno sound rises with the visible run and stops on release", asyn
   const lateSound = await readDynoAudioState(page);
   await page.keyboard.up("w");
 
-  expect(earlySound?.loop).toBe(true);
-  expect(earlySound?.paused).toBe(false);
-  expect(stoppedEarlySound?.loop).toBe(false);
-  expect(stoppedEarlySound?.paused).toBe(true);
-  expect(lateSound?.loop).toBe(true);
-  expect(lateSound?.paused).toBe(false);
-  expect(lateSound?.playbackRate).toBeGreaterThan(
-    earlySound?.playbackRate ?? Number.POSITIVE_INFINITY,
+  expect(primedSound?.oscillatorStarts).toBeGreaterThanOrEqual(2);
+  expect(Math.max(...(earlySound?.gainTargets ?? []))).toBeGreaterThan(0);
+  expect(stoppedEarlySound?.gainTargets.at(-1)).toBe(0);
+  expect(Math.max(...(lateSound?.frequencyTargets ?? []))).toBeGreaterThan(
+    Math.max(...(earlySound?.frequencyTargets ?? [Number.POSITIVE_INFINITY])),
   );
-  expect(lateSound?.volume).toBeGreaterThan(
-    earlySound?.volume ?? Number.POSITIVE_INFINITY,
+  expect(Math.max(...(lateSound?.gainTargets ?? []))).toBeGreaterThan(
+    Math.max(...(earlySound?.gainTargets ?? [Number.POSITIVE_INFINITY])),
   );
   await expect(dynoState).toHaveAttribute("data-phase", "paused");
   const stoppedSound = await readDynoAudioState(page);
-  expect(stoppedSound?.loop).toBe(false);
-  expect(stoppedSound?.paused).toBe(true);
+  expect(stoppedSound?.gainTargets.at(-1)).toBe(0);
 });
 
 test("the Dyno rejects a near but laterally misaligned Active Flagship", async ({

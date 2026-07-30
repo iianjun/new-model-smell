@@ -19,22 +19,32 @@ function safelyPlay(audio: HTMLAudioElement) {
   playWithoutBlocking(audio);
 }
 
-function safelyResume(audio: HTMLAudioElement) {
-  playWithoutBlocking(audio);
+function resumeWithoutBlocking(context: AudioContext) {
+  try {
+    void context.resume().catch(() => {
+      // Audio is progressive enhancement. Browser policy failures must never
+      // become application-state failures.
+    });
+  } catch {
+    // Some browsers throw synchronously before returning a resume promise.
+  }
 }
 
-function stopLoop(audio: HTMLAudioElement) {
-  audio.pause();
-  audio.currentTime = 0;
-  audio.loop = false;
-  audio.playbackRate = 1;
-  audio.volume = 0.32;
-}
+type DynoSynthesis = {
+  context: AudioContext;
+  motor: OscillatorNode;
+  motorGain: GainNode;
+  output: GainNode;
+  roller: OscillatorNode;
+  rollerGain: GainNode;
+};
 
 export function useProgressiveAudio() {
   const [enabled, setEnabled] = useState(false);
   const enabledRef = useRef(false);
   const audioByCue = useRef(new Map<MotorTownAudioCue, HTMLAudioElement>());
+  const dynoSynthesis = useRef<DynoSynthesis | null>(null);
+  const dynoSynthesisUnavailable = useRef(false);
 
   const getAudio = useCallback((cue: MotorTownAudioCue) => {
     const existing = audioByCue.current.get(cue);
@@ -51,6 +61,66 @@ export function useProgressiveAudio() {
     return audio;
   }, []);
 
+  const getDynoSynthesis = useCallback(() => {
+    const existing = dynoSynthesis.current;
+
+    if (existing) {
+      return existing;
+    }
+
+    if (dynoSynthesisUnavailable.current) {
+      return null;
+    }
+
+    let context: AudioContext | null = null;
+
+    try {
+      context = new AudioContext();
+      const motor = context.createOscillator();
+      const motorGain = context.createGain();
+      const output = context.createGain();
+      const roller = context.createOscillator();
+      const rollerGain = context.createGain();
+
+      motor.type = "sawtooth";
+      motor.frequency.value = 72;
+      motorGain.gain.value = 0.52;
+      roller.type = "triangle";
+      roller.frequency.value = 118;
+      rollerGain.gain.value = 0.28;
+      output.gain.value = 0;
+
+      motor.connect(motorGain);
+      motorGain.connect(output);
+      roller.connect(rollerGain);
+      rollerGain.connect(output);
+      output.connect(context.destination);
+      motor.start();
+      roller.start();
+
+      const synthesis = {
+        context,
+        motor,
+        motorGain,
+        output,
+        roller,
+        rollerGain,
+      };
+      dynoSynthesis.current = synthesis;
+
+      return synthesis;
+    } catch {
+      dynoSynthesisUnavailable.current = true;
+      if (context) {
+        void context.close().catch(() => {
+          // Audio is progressive enhancement.
+        });
+      }
+
+      return null;
+    }
+  }, []);
+
   const playCue = useCallback(
     (cue: MotorTownAudioCue) => {
       if (enabledRef.current) {
@@ -62,27 +132,47 @@ export function useProgressiveAudio() {
 
   const setDynoRunIntensity = useCallback(
     (active: boolean, intensity: number) => {
-      const existing = audioByCue.current.get("dyno");
+      const existing = dynoSynthesis.current;
 
       if (!active || !enabledRef.current) {
-        if (existing?.loop) {
-          stopLoop(existing);
+        if (existing) {
+          existing.output.gain.setTargetAtTime(
+            0,
+            existing.context.currentTime,
+            0.025,
+          );
         }
 
         return;
       }
 
-      const audio = getAudio("dyno");
-      const normalizedIntensity = Math.min(1, Math.max(0, intensity));
-      audio.loop = true;
-      audio.volume = 0.12 + normalizedIntensity * 0.28;
-      audio.playbackRate = 0.7 + normalizedIntensity * 1.1;
+      const synthesis = getDynoSynthesis();
 
-      if (audio.paused) {
-        safelyResume(audio);
+      if (!synthesis) {
+        return;
       }
+
+      const normalizedIntensity = Math.min(1, Math.max(0, intensity));
+      const now = synthesis.context.currentTime;
+
+      resumeWithoutBlocking(synthesis.context);
+      synthesis.motor.frequency.setTargetAtTime(
+        72 + normalizedIntensity * 118,
+        now,
+        0.04,
+      );
+      synthesis.roller.frequency.setTargetAtTime(
+        118 + normalizedIntensity * 224,
+        now,
+        0.035,
+      );
+      synthesis.output.gain.setTargetAtTime(
+        0.045 + normalizedIntensity * 0.105,
+        now,
+        0.025,
+      );
     },
-    [getAudio],
+    [getDynoSynthesis],
   );
 
   const toggle = useCallback(() => {
@@ -92,14 +182,32 @@ export function useProgressiveAudio() {
 
     if (nextEnabled) {
       safelyPlay(getAudio("transfer"));
+      const synthesis = getDynoSynthesis();
+
+      if (synthesis) {
+        resumeWithoutBlocking(synthesis.context);
+      }
       return;
+    }
+
+    const synthesis = dynoSynthesis.current;
+
+    if (synthesis) {
+      synthesis.output.gain.setValueAtTime(0, synthesis.context.currentTime);
+      try {
+        void synthesis.context.suspend().catch(() => {
+          // Audio is progressive enhancement.
+        });
+      } catch {
+        // Some browsers throw synchronously before returning a suspend promise.
+      }
     }
 
     for (const audio of audioByCue.current.values()) {
       audio.pause();
       audio.currentTime = 0;
     }
-  }, [getAudio]);
+  }, [getAudio, getDynoSynthesis]);
 
   useEffect(
     () => () => {
@@ -110,6 +218,21 @@ export function useProgressiveAudio() {
       }
 
       audioByCue.current.clear();
+      const synthesis = dynoSynthesis.current;
+
+      if (synthesis) {
+        synthesis.motor.stop();
+        synthesis.roller.stop();
+        synthesis.motor.disconnect();
+        synthesis.motorGain.disconnect();
+        synthesis.roller.disconnect();
+        synthesis.rollerGain.disconnect();
+        synthesis.output.disconnect();
+        void synthesis.context.close().catch(() => {
+          // Audio is progressive enhancement.
+        });
+        dynoSynthesis.current = null;
+      }
     },
     [],
   );

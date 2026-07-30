@@ -95,6 +95,10 @@ third-party identity art.
 - Usage: opt-in cues for transfer, Dyno, reveal, and Model Dossier transitions.
   Playback rejection or decode failure is intentionally ignored so audio can
   never block the experience.
+- The continuous Dyno run uses repository-authored Web Audio synthesis rather
+  than stretching the 0.056-second `click2.ogg` transition cue into a loop.
+  Its two oscillators start from the explicit audio-toggle gesture, and their
+  output gain and frequencies follow visible run progress.
 
 ## Kenney · Impact Sounds
 

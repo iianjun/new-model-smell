@@ -6,7 +6,7 @@
 
 **Automated environment:** Chromium desktop profile, development server and production preview, 1280×720 viewport
 
-**Result:** Pass for the desktop vertical-slice scope
+**Result:** Pending final audible Dyno recheck; all other desktop vertical-slice areas pass
 
 ## Evidence
 
@@ -15,7 +15,7 @@
 - Both public-input journeys pass with one WebGL worker. The fixture-free clean journey also passed in 2.0 minutes against the production preview rather than the development server.
 - `tests/vertical-slice-visual.spec.ts` covers six named checkpoints with a fixed date, desktop viewport, OS-independent snapshot paths, a deterministic real opening timestamp, and a 1.5% maximum differing-pixel budget.
 - The six checked-in baselines under `tests/__screenshots__/vertical-slice-visual.spec.ts/` passed after visual inspection at native aspect ratio.
-- The optional Dyno loop now takes its volume and playback rate from the same run-progress signal as the wheels, rollers, fans, gauges, vibration, and pixel effects. A browser regression verifies looping playback is active during the run, playback pauses and clears the loop when the accelerator is released, resuming the run restarts it, and both parameters rise with visible progress.
+- The optional Dyno synthesis takes its output gain and two oscillator frequencies from the same run-progress signal as the wheels, rollers, fans, gauges, vibration, and pixel effects. A browser regression verifies both oscillators start from the explicit audio-toggle gesture, gain and frequency targets rise with visible progress, output gain returns to zero when the accelerator is released, and resuming the run raises it again.
 - Runtime asset provenance and source/runtime separation are recorded in `docs/design/asset-manifest.md`.
 - `pnpm validate` passed Biome over 62 files, TypeScript, the production build, and all 32 Chromium tests.
 
@@ -28,11 +28,11 @@
 | Building readability | Inspected the live Showroom and the six native-aspect visual checkpoints. | Pass — cutaway walls, safety-orange equipment, signage, vehicle silhouettes, and road guidance stayed distinguishable at 1280×720. |
 | Navigation | Followed the visible destination, distance, and steering guidance; the Showroom target resolves to a physical Valet bay rather than the building center. | Pass — the clean and three-model journeys each reached Showroom and Dyno using only public guidance and input, including the non-first center bay. |
 | Pointer tolerance | In the headed production pass, public keyboard input stopped at the printed sheet and an agent manually dragged the visible orange tab by screen coordinates. The public-input journey independently detects the tab from rendered pixels, while the visual suite holds it at an intermediate pull. | Pass — the manual pull and both automated partial/completed pulls worked without injecting a projected handle coordinate. |
-| Dyno synchronization | Observed the headed production run and sheet-ready state; visual checkpoints cover a 62% pause, the printed sheet, partial pull, and final Dossier. The optional audio regression verifies active looping, increasing volume and playback rate during visible run progress, stopped playback on release, and resumed playback when the run continues. | Pass — clamp state, progress, machinery, optional sound, sheet, and Dossier share or follow the coordinated run signal. |
+| Dyno synchronization | Observed the headed production run and sheet-ready state; visual checkpoints cover a 62% pause, the printed sheet, partial pull, and final Dossier. The optional audio regression verifies two running oscillators, increasing output gain and frequency targets during visible run progress, zero gain on release, and raised gain when the run continues. | Pending — the first audible pass exposed the former 0.056-second click loop as silent after its initial transient; the synthesized replacement awaits a fresh listening confirmation. |
 | Visual language | Inspected all six baselines together. | Pass — warm ivory, charcoal, safety orange, faded green, and pale blue remain consistent; machinery is matte and DOM interfaces remain crisp. |
-| Audio resilience | Toggled audio in production Chrome and ran the rejected-playback regression. | Pass — autoplay permission never blocks loading, control, or state progression. |
+| Audio resilience | Toggled audio in production Chrome and ran the rejected-playback regression with both media playback and Web Audio construction denied. | Pass — autoplay permission and Web Audio availability never block loading, control, or state progression. |
 
-The agent-operated passes supplied direct visual and pointer inspection for driving, camera, visual readability, pointer tolerance, and the physical-to-Dossier transition. Public keyboard automation supplied the simultaneous steering needed to reach the later manual Dyno inspection because the desktop-control surface could not hold two non-modifier keys; no product state was injected into the fixture-free production journey. The agent control surface does not expose audible output, so this report does not claim a listening judgment; audio evidence is limited to browser-observed playback and loop state, coordinated parameters, toggle behavior, and rejected-playback resilience.
+The agent-operated passes supplied direct visual and pointer inspection for driving, camera, visual readability, pointer tolerance, and the physical-to-Dossier transition. Public keyboard automation supplied the simultaneous steering needed to reach the later manual Dyno inspection because the desktop-control surface could not hold two non-modifier keys; no product state was injected into the fixture-free production journey. The agent control surface does not expose audible output, so the synthesized replacement still requires a human listening judgment; automatic evidence is limited to oscillator startup, coordinated gain and frequency targets, zero gain on release, toggle behavior, and rejected-playback resilience.
 
 ## Performance sample
 

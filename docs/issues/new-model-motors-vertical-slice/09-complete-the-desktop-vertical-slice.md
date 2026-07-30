@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 — Connect The Nose to Model Freshness; 08 — Pull the Dyno Sheet into a Model Dossier.
 
-**Status:** done
+**Status:** in progress
 
 **Evidence:** [asset manifest](../../design/asset-manifest.md) · [desktop QA report](./09-desktop-qa-report.md)
 
@@ -21,5 +21,5 @@
 - [x] Repeated props share or instance geometry and materials, runtime assets are split into logical load units, and unused resources are disposed.
 - [x] Production build and lint pass, and the complete browser journey passes from a clean start.
 - [x] Visual-regression checkpoints cover the reveal, cutaway Showroom, Valet Transfer, Dyno escalation, paper-to-dossier transition, and final dossier.
-- [x] A manual desktop pass confirms driving feel, camera comfort, pointer tolerance, building readability, synchronized Dyno presentation, and stable performance.
+- [ ] A manual desktop pass confirms driving feel, camera comfort, pointer tolerance, building readability, synchronized Dyno presentation, and stable performance.
 - [x] Touch controls, mobile tuning, Drive-In content, additional Dealerships, and final commissioned art remain outside this ticket.

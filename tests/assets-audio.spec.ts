@@ -95,6 +95,11 @@ test("rejected audio playback stays optional and never blocks state progress", a
   await page.addInitScript(() => {
     HTMLMediaElement.prototype.play = () =>
       Promise.reject(new DOMException("Autoplay denied", "NotAllowedError"));
+    window.AudioContext = class UnavailableAudioContext {
+      constructor() {
+        throw new DOMException("Web Audio denied", "NotAllowedError");
+      }
+    } as unknown as typeof AudioContext;
   });
 
   await page.goto("/");
