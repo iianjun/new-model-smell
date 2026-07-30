@@ -1,9 +1,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import type { RapierRigidBody } from "@react-three/rapier";
 import { useEffect, useMemo, useRef } from "react";
 import { type Group, MathUtils, Vector3 } from "three";
 import type { TrackedCompany } from "./flagshipLineup";
-import { LiveNoseController } from "./LiveNoseController";
 import { getNewestFlagshipLaunchFreshness } from "./modelFreshness";
 import {
   animateNoseInhaleParticles,
@@ -43,7 +41,6 @@ type OpeningSequenceProps = {
   onStage: (stage: OpeningStage) => void;
   skipRequested: boolean;
   trackedCompanies: readonly TrackedCompany[];
-  trackedVehicleBody: React.RefObject<RapierRigidBody | null>;
 };
 
 type OpeningCamera = {
@@ -109,7 +106,6 @@ export function OpeningSequence({
   onStage,
   skipRequested,
   trackedCompanies,
-  trackedVehicleBody,
 }: OpeningSequenceProps) {
   const { camera } = useThree();
   const freshness = useMemo(
@@ -120,6 +116,8 @@ export function OpeningSequence({
     () => getOpeningCamera(freshness.dealershipYaw),
     [freshness.dealershipYaw],
   );
+  const freshnessNeedleRotation =
+    1.05 - (freshness.smellRemainingPercent / 100) * 2.1;
   const elapsed = useRef(0);
   const completed = useRef(false);
   const currentStage = useRef<OpeningStage>("inhale");
@@ -184,7 +182,7 @@ export function OpeningSequence({
       }
 
       if (needleGroup) {
-        needleGroup.rotation.z = -1.05;
+        needleGroup.rotation.z = freshnessNeedleRotation;
       }
 
       currentStage.current = "wake";
@@ -219,7 +217,7 @@ export function OpeningSequence({
       }
 
       if (needleGroup) {
-        needleGroup.rotation.z = -1.05;
+        needleGroup.rotation.z = freshnessNeedleRotation;
       }
 
       if (coverGroup) {
@@ -363,12 +361,6 @@ export function OpeningSequence({
         handles={noseHandles}
         orientationYaw={freshness.dealershipYaw}
         smellRemainingPercent={freshness.smellRemainingPercent}
-      />
-      <LiveNoseController
-        active={isDriving}
-        freshness={freshness}
-        handles={noseHandles}
-        trackedVehicleBody={trackedVehicleBody}
       />
       <InspectorCartCover cover={cover} />
     </>

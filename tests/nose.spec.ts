@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import type {
   RuntimeTrackedCompanyFixture,
@@ -50,17 +51,6 @@ async function installNoseFixture(
   );
 }
 
-async function enterDriving(page: import("@playwright/test").Page) {
-  await page.goto("/");
-  await expect(
-    page.getByRole("status", { name: "Loading New Model Motors" }),
-  ).toBeHidden();
-  await page.keyboard.press("x");
-  await expect(page.getByTestId("driving-state")).toContainText(
-    "Ready to inspect",
-  );
-}
-
 async function observeFreshnessDirection(
   browser: import("@playwright/test").Browser,
   companies: readonly RuntimeTrackedCompanyFixture[],
@@ -105,31 +95,12 @@ test("fixture dates redirect The Nose to the Dealership containing the newest Fl
   expect(left.canvas.equals(right.canvas)).toBe(false);
 });
 
-test("a nearby vehicle keeps The Nose visibly reactive without taking steering", async ({
-  page,
-}) => {
-  await page.clock.setFixedTime(new Date("2026-07-29T12:00:00.000Z"));
-  await installNoseFixture(page, trackedCompanies("2026-07-28", "2026-07-08"), {
-    x: 0,
-    y: 0.72,
-    z: 3.55,
-  });
-  await enterDriving(page);
-  const canvas = page.locator("canvas");
-  const firstReactionFrame = await canvas.screenshot();
-  let visiblyChanged = false;
-
-  for (let index = 0; index < 5; index += 1) {
-    await page.waitForTimeout(100);
-    visiblyChanged ||= !(await canvas.screenshot()).equals(firstReactionFrame);
-  }
-
-  expect(visiblyChanged).toBe(true);
-
-  await page.keyboard.down("w");
-  await expect(page.getByTestId("driving-state")).toContainText(
-    /Cart in motion|Bounced clear/,
-    { timeout: 10_000 },
+test("The Nose has no live visitor-tracking controller after the opening", async () => {
+  const openingSource = await readFile(
+    new URL("../src/OpeningSequence.tsx", import.meta.url),
+    "utf8",
   );
-  await page.keyboard.up("w");
+
+  expect(openingSource).not.toContain("LiveNoseController");
+  expect(openingSource).not.toContain("trackedVehicleBody");
 });
