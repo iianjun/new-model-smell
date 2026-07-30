@@ -6,7 +6,7 @@
 
 **Automated environment:** Chromium desktop profile, development server and production preview, 1280×720 viewport
 
-**Result:** Pending final audible Dyno recheck; all other desktop vertical-slice areas pass
+**Result:** Pass for the desktop vertical-slice scope
 
 ## Evidence
 
@@ -28,11 +28,11 @@
 | Building readability | Inspected the live Showroom and the six native-aspect visual checkpoints. | Pass — cutaway walls, safety-orange equipment, signage, vehicle silhouettes, and road guidance stayed distinguishable at 1280×720. |
 | Navigation | Followed the visible destination, distance, and steering guidance; the Showroom target resolves to a physical Valet bay rather than the building center. | Pass — the clean and three-model journeys each reached Showroom and Dyno using only public guidance and input, including the non-first center bay. |
 | Pointer tolerance | In the headed production pass, public keyboard input stopped at the printed sheet and an agent manually dragged the visible orange tab by screen coordinates. The public-input journey independently detects the tab from rendered pixels, while the visual suite holds it at an intermediate pull. | Pass — the manual pull and both automated partial/completed pulls worked without injecting a projected handle coordinate. |
-| Dyno synchronization | Observed the headed production run and sheet-ready state; visual checkpoints cover a 62% pause, the printed sheet, partial pull, and final Dossier. The optional audio regression verifies two running oscillators, increasing output gain and frequency targets during visible run progress, zero gain on release, and raised gain when the run continues. | Pending — the first audible pass exposed the former 0.056-second click loop as silent after its initial transient; the synthesized replacement awaits a fresh listening confirmation. |
+| Dyno synchronization | Observed the headed production run and sheet-ready state; visual checkpoints cover a 62% pause, the printed sheet, partial pull, and final Dossier. The optional audio regression verifies two running oscillators, increasing output gain and frequency targets during visible run progress, zero gain on release, and raised gain when the run continues. A human listener heard the current React build through the fixture-seeded manual Dyno entry after the synthesis fix. | Pass — clamp state, progress, machinery, sustained sound, sheet, and Dossier share or follow the coordinated run signal; the listener confirmed that the replacement Dyno sound was clearly audible. |
 | Visual language | Inspected all six baselines together. | Pass — warm ivory, charcoal, safety orange, faded green, and pale blue remain consistent; machinery is matte and DOM interfaces remain crisp. |
 | Audio resilience | Toggled audio in production Chrome and ran the rejected-playback regression with both media playback and Web Audio construction denied. | Pass — autoplay permission and Web Audio availability never block loading, control, or state progression. |
 
-The agent-operated passes supplied direct visual and pointer inspection for driving, camera, visual readability, pointer tolerance, and the physical-to-Dossier transition. Public keyboard automation supplied the simultaneous steering needed to reach the later manual Dyno inspection because the desktop-control surface could not hold two non-modifier keys; no product state was injected into the fixture-free production journey. The agent control surface does not expose audible output, so the synthesized replacement still requires a human listening judgment; automatic evidence is limited to oscillator startup, coordinated gain and frequency targets, zero gain on release, toggle behavior, and rejected-playback resilience.
+The agent-operated passes supplied direct visual and pointer inspection for driving, camera, visual readability, pointer tolerance, and the physical-to-Dossier transition. Public keyboard automation supplied the simultaneous steering needed to reach the later manual Dyno inspection because the desktop-control surface could not hold two non-modifier keys; no product state was injected into the fixture-free production journey. Automatic audio evidence covers oscillator startup, coordinated gain and frequency targets, zero gain on release, toggle behavior, and rejected-playback resilience; a human listener supplied the final audible judgment in the temporary fixture-seeded React QA entry on 2026-07-30.
 
 ## Performance sample
 

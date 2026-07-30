@@ -1,6 +1,6 @@
 # Build the New Model Motors desktop vertical slice
 
-Status: `in progress`
+Status: `done`
 
 Evidence: [Ticket 09 desktop QA report](./new-model-motors-vertical-slice/09-desktop-qa-report.md)
 
