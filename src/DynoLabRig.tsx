@@ -1,4 +1,4 @@
-import { type ThreeEvent, useFrame } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
 import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import {
   type MutableRefObject,
@@ -14,7 +14,6 @@ import {
   type Mesh,
   type MeshStandardMaterial,
   SRGBColorSpace,
-  Vector3,
 } from "three";
 import {
   DYNO_SHEET_DRAG_TOLERANCE_PX,
@@ -22,7 +21,6 @@ import {
   DYNO_SHEET_PULL_DISTANCE_PX,
 } from "./dossier";
 import { DYNO_ALIGNMENT_POSITION, DYNO_SHEET_LENGTH } from "./dyno";
-import { publishDossierRuntimeTestState } from "./runtimeTestState";
 
 const CHARCOAL = "#252723";
 const FLOOR = "#c7b994";
@@ -132,23 +130,6 @@ function DynoSheet({
 }: DynoSheetProps) {
   const dragOrigin = useRef<{ x: number; y: number } | null>(null);
   const pullProgress = useRef(0);
-  const pullHandle = useRef<Group>(null);
-  const projectedHandle = useRef(new Vector3());
-
-  useFrame(({ camera, size }) => {
-    if (!import.meta.env.DEV || !canPull() || !pullHandle.current) {
-      return;
-    }
-
-    pullHandle.current.getWorldPosition(projectedHandle.current);
-    projectedHandle.current.project(camera);
-    publishDossierRuntimeTestState({
-      sheetHandle: {
-        x: Math.round((projectedHandle.current.x * 0.5 + 0.5) * size.width),
-        y: Math.round((-projectedHandle.current.y * 0.5 + 0.5) * size.height),
-      },
-    });
-  });
 
   const finishPull = (event: ThreeEvent<PointerEvent>) => {
     if (!dragOrigin.current) {
@@ -220,7 +201,7 @@ function DynoSheet({
           />
         </mesh>
       ))}
-      <group position={[0, 0.14, DYNO_SHEET_LENGTH - 0.35]} ref={pullHandle}>
+      <group position={[0, 0.14, DYNO_SHEET_LENGTH - 0.35]}>
         <mesh castShadow>
           <boxGeometry args={[1.02, 0.08, 0.56]} />
           <meshStandardMaterial

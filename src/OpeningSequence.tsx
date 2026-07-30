@@ -7,7 +7,6 @@ import { LiveNoseController } from "./LiveNoseController";
 import { getNewestFlagshipLaunchFreshness } from "./modelFreshness";
 import {
   animateNoseInhaleParticles,
-  NOSE_GAUGE_LABEL,
   NoseLandmark,
   useNoseLandmarkHandles,
 } from "./NoseLandmark";
@@ -17,10 +16,6 @@ import {
   type OpeningEntry,
   type OpeningStage,
 } from "./opening";
-import {
-  type NoseReaction,
-  publishNoseRuntimeTestState,
-} from "./runtimeTestState";
 
 const FINAL_CAMERA_POSITION = new Vector3(4.2, 9.52, 16.7);
 const FINAL_CAMERA_TARGET = new Vector3(0, 1.12, 4.6);
@@ -129,7 +124,7 @@ export function OpeningSequence({
   const completed = useRef(false);
   const currentStage = useRef<OpeningStage>("inhale");
   const noseHandles = useNoseLandmarkHandles();
-  const { gaugeNeedle, nose, particles, turntable } = noseHandles;
+  const { gaugeNeedle, nose, particles } = noseHandles;
   const cover = useRef<Group>(null);
   const finalCameraPosition = useRef(new Vector3());
   const finalCameraTarget = useRef(new Vector3());
@@ -150,7 +145,6 @@ export function OpeningSequence({
     const noseGroup = nose.current;
     const needleGroup = gaugeNeedle.current;
     const particleGroup = particles.current;
-    const turntableGroup = turntable.current;
 
     if (!active && !isDriving) {
       camera.position.copy(
@@ -204,7 +198,16 @@ export function OpeningSequence({
       return;
     }
 
-    elapsed.current += Math.min(frameDelta, 0.05);
+    const fixtureElapsed = import.meta.env.DEV
+      ? window.__NEW_MODEL_MOTORS_TEST_FIXTURES__?.openingElapsedSeconds
+      : undefined;
+
+    if (fixtureElapsed === undefined) {
+      elapsed.current += Math.min(frameDelta, 0.05);
+    } else {
+      elapsed.current = fixtureElapsed;
+    }
+
     const time = elapsed.current;
 
     if (entry === "reduced") {
@@ -346,24 +349,6 @@ export function OpeningSequence({
     if (nextStage !== currentStage.current) {
       currentStage.current = nextStage;
       onStage(nextStage);
-    }
-
-    if (import.meta.env.DEV && turntableGroup) {
-      const reaction: NoseReaction =
-        time >= FULL_TIMING.sneeze && time < FULL_TIMING.wake
-          ? "sneeze"
-          : time < FULL_TIMING.sneeze
-            ? "inhale"
-            : "idle";
-
-      publishNoseRuntimeTestState({
-        freshness,
-        gaugeLabel: NOSE_GAUGE_LABEL,
-        mode: "model-freshness",
-        particlesVisible: particleGroup?.visible ?? false,
-        reaction,
-        turntableYaw: turntableGroup.rotation.y,
-      });
     }
 
     if (time >= FULL_TIMING.complete) {

@@ -125,6 +125,36 @@
   pointer-events: none;
 }
 
+.audio-control {
+  position: absolute;
+  top: clamp(6.1rem, 10vw, 7.4rem);
+  right: clamp(1.25rem, 3vw, 2.5rem);
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #252723;
+  color: #252723;
+  background: rgba(242, 231, 210, 0.88);
+  box-shadow: 0.18rem 0.18rem 0 rgba(37, 39, 35, 0.16);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  pointer-events: auto;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.audio-control[aria-pressed="true"] {
+  background: #d7dfae;
+}
+
+.audio-control:focus-visible {
+  outline: 0.2rem solid #ef6d32;
+  outline-offset: 0.16rem;
+}
+
 .title-lockup {
   position: absolute;
   top: clamp(1.25rem, 3vw, 2.5rem);
@@ -171,6 +201,16 @@
   margin-top: 0.1rem;
   font-size: 0.76rem;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.runtime-card small {
+  display: block;
+  margin-top: 0.28rem;
+  color: rgba(37, 39, 35, 0.72);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 

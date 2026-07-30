@@ -1,11 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { installRuntimeFixtures, loadingSurface } from "./support/runtime.js";
 
 test.describe.configure({ mode: "serial" });
-
-const loadingSurface = (page: import("@playwright/test").Page) =>
-  page.getByRole("status", {
-    name: "Loading New Model Motors",
-  });
 
 const drivingState = (page: import("@playwright/test").Page) =>
   page.getByTestId("driving-state");
@@ -73,6 +69,13 @@ async function skipOpening(page: import("@playwright/test").Page) {
   await page.keyboard.up("w");
 }
 
+async function installInitialCartPosition(
+  page: import("@playwright/test").Page,
+  initialCartPosition: { x: number; y: number; z: number },
+) {
+  await installRuntimeFixtures(page, { initialCartPosition });
+}
+
 test("visitor moves from the loading surface into New Model Motors", async ({
   page,
 }) => {
@@ -121,10 +124,25 @@ test("reduced motion uses a calm reveal and reaches controllable driving", async
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await installRuntimeFixtures(page, { openingElapsedSeconds: 0.72 });
   await page.goto("/");
   await expect(loadingSurface(page)).toBeHidden();
 
   await expect(page.getByText("Calm Motor Town reveal")).toBeVisible();
+  await expect(page).toHaveScreenshot("reduced-motion-calm-reveal.png", {
+    animations: "disabled",
+    maxDiffPixelRatio: 0.015,
+    threshold: 0.2,
+  });
+  await page.evaluate(() => {
+    const fixtures = window.__NEW_MODEL_MOTORS_TEST_FIXTURES__;
+
+    if (!fixtures) {
+      throw new Error("Reduced-motion fixture is unavailable");
+    }
+
+    fixtures.openingElapsedSeconds = 1.2;
+  });
   await expect(drivingState(page)).toContainText("Ready to inspect", {
     timeout: 7_000,
   });
@@ -174,17 +192,7 @@ test("visitor drives the Inspector Cart through a collision and remains in contr
 test("a roadside tree stops the Inspector Cart before the town boundary", async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const testWindow = window as Window & {
-      __NEW_MODEL_MOTORS_TEST_FIXTURES__?: {
-        initialCartPosition: { x: number; y: number; z: number };
-      };
-    };
-
-    testWindow.__NEW_MODEL_MOTORS_TEST_FIXTURES__ = {
-      initialCartPosition: { x: -9.4, y: 0.72, z: 9 },
-    };
-  });
+  await installInitialCartPosition(page, { x: -4.8, y: 0.72, z: -6.2 });
   await page.goto("/");
   await skipOpening(page);
   await observeDrivingState(page, "Bounced clear");
@@ -198,15 +206,13 @@ test("a roadside tree stops the Inspector Cart before the town boundary", async 
 test("a destination building stops the Inspector Cart before the blocked road", async ({
   page,
 }) => {
+  await installInitialCartPosition(page, { x: -9.2, y: 0.72, z: -7 });
   await page.goto("/");
   await skipOpening(page);
   await observeDrivingState(page, "Bounced clear");
 
   await page.keyboard.down("w");
-  await page.keyboard.down("a");
-  await page.waitForTimeout(450);
-  await page.keyboard.up("a");
 
-  await expectDrivingStateWasObserved(page, "Bounced clear", 6_000);
+  await expectDrivingStateWasObserved(page, "Bounced clear", 2_800);
   await page.keyboard.up("w");
 });

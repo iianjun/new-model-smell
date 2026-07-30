@@ -5,6 +5,42 @@ export const DYNO_ALIGNMENT_POSITION = {
 } as const;
 
 export const DYNO_ALIGNMENT_YAW = 0;
+export const DYNO_APPROACH_RADIUS = 4.5;
+const DYNO_NAVIGATION_FINAL_RADIUS = 1.75;
+const DYNO_NAVIGATION_ROUTE = [
+  {
+    hasPassed: (position: { x: number; z: number }) =>
+      position.x <= -4.5 && position.z >= 5.4,
+    targetPosition: { x: -6, y: 0.2, z: 6.8 },
+  },
+  {
+    hasPassed: (position: { x: number; z: number }) =>
+      position.x >= 4.6 && position.z >= 5,
+    targetPosition: { x: 6, y: 0.2, z: 6.8 },
+  },
+  {
+    hasPassed: (position: { x: number; z: number }) =>
+      position.x >= 8.2 && position.z <= 3.4,
+    targetPosition: { x: 9.2, y: 0.2, z: 2 },
+  },
+  {
+    hasPassed: (position: { x: number; z: number }) =>
+      Math.abs(position.x - DYNO_ALIGNMENT_POSITION.x) <= 0.5 &&
+      position.z <= -0.35 &&
+      position.z >= -1.4,
+    targetPosition: { x: 9.2, y: 0.2, z: -0.8 },
+  },
+  {
+    hasPassed: () => false,
+    targetPosition: DYNO_ALIGNMENT_POSITION,
+  },
+] as const;
+const DYNO_CAPTURE_TOLERANCE = {
+  halfDepth: 0.62,
+  halfWidth: 0.48,
+  maximumSpeed: 0.75,
+  maximumYawError: 0.3,
+} as const;
 export const DYNO_CLAMP_SECONDS = 0.78;
 export const DYNO_RUN_SECONDS = 3.6;
 export const DYNO_SHEET_LENGTH = 5.8;
@@ -166,6 +202,50 @@ export type DynoAlignment = {
   inApproachZone: boolean;
 };
 
+export function getInitialDynoNavigationWaypointIndex(position: {
+  x: number;
+  z: number;
+}) {
+  const distanceFromDyno = Math.hypot(
+    position.x - DYNO_ALIGNMENT_POSITION.x,
+    position.z - DYNO_ALIGNMENT_POSITION.z,
+  );
+
+  return distanceFromDyno <= DYNO_APPROACH_RADIUS
+    ? DYNO_NAVIGATION_ROUTE.length - 1
+    : 0;
+}
+
+export function getDynoNavigationWaypoint(
+  position: { x: number; z: number },
+  currentIndex: number,
+) {
+  const distanceFromDyno = Math.hypot(
+    position.x - DYNO_ALIGNMENT_POSITION.x,
+    position.z - DYNO_ALIGNMENT_POSITION.z,
+  );
+  const finalIndex = DYNO_NAVIGATION_ROUTE.length - 1;
+
+  if (distanceFromDyno <= DYNO_NAVIGATION_FINAL_RADIUS) {
+    return {
+      index: finalIndex,
+      targetPosition: DYNO_NAVIGATION_ROUTE[finalIndex].targetPosition,
+    };
+  }
+
+  let nextIndex = Math.min(Math.max(0, currentIndex), finalIndex);
+  const waypoint = DYNO_NAVIGATION_ROUTE[nextIndex];
+
+  if (waypoint.hasPassed(position)) {
+    nextIndex += 1;
+  }
+
+  return {
+    index: nextIndex,
+    targetPosition: DYNO_NAVIGATION_ROUTE[nextIndex].targetPosition,
+  };
+}
+
 function normalizedAngle(value: number) {
   return Math.atan2(Math.sin(value), Math.cos(value));
 }
@@ -181,17 +261,22 @@ export function getDynoAlignment(
   const positionError = Math.hypot(xError, zError);
   const alignmentError = Math.min(
     1,
-    xError / 0.48 + zError / 0.62 + yawError / 0.3 + planarSpeed / 0.75,
+    Math.max(
+      xError / DYNO_CAPTURE_TOLERANCE.halfWidth,
+      zError / DYNO_CAPTURE_TOLERANCE.halfDepth,
+      yawError / DYNO_CAPTURE_TOLERANCE.maximumYawError,
+      planarSpeed / DYNO_CAPTURE_TOLERANCE.maximumSpeed,
+    ),
   );
 
   return {
     aligned:
-      xError <= 0.48 &&
-      zError <= 0.62 &&
-      yawError <= 0.3 &&
-      planarSpeed <= 0.75,
+      xError <= DYNO_CAPTURE_TOLERANCE.halfWidth &&
+      zError <= DYNO_CAPTURE_TOLERANCE.halfDepth &&
+      yawError <= DYNO_CAPTURE_TOLERANCE.maximumYawError &&
+      planarSpeed <= DYNO_CAPTURE_TOLERANCE.maximumSpeed,
     alignmentError,
-    inApproachZone: positionError <= 3.2,
+    inApproachZone: positionError <= DYNO_APPROACH_RADIUS,
   };
 }
 

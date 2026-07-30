@@ -15,7 +15,7 @@
 - [x] The high three-quarter chase camera follows smoothly without becoming a free, first-person, or cockpit camera.
 - [x] Collisions bounce without damage, lives, scores, timers, or failure screens.
 - [x] Every solid environment object present during driving, including buildings, trees, barriers, landmarks, and backdrop structures, has a simplified fixed collision proxy; low road curbs and edge blocks remain visible but non-colliding route guidance so visitors can leave the road freely.
-- [x] An overturned or irretrievably trapped Inspector Cart returns automatically to controllable driving.
+- [x] The Inspector Cart's physical chassis stays upright, and an irretrievably trapped Cart returns automatically to controllable driving.
 - [x] Driving input does not scroll the page or activate unrelated DOM controls.
 - [x] The scene establishes the approved bright daytime palette and a stable pixelated presentation without geometry jitter or decorative chrome.
 - [x] A browser test drives the Cart far enough to verify public movement, collision recovery, and continued control.

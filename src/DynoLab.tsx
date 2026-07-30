@@ -26,10 +26,6 @@ import {
   type DynoRunSnapshot,
   isDynoSheetPullReady,
 } from "./dynoRun";
-import {
-  publishDossierRuntimeTestState,
-  publishDynoRuntimeTestState,
-} from "./runtimeTestState";
 import { getYawFromQuaternion } from "./showroomLayout";
 import { quaternionFromYaw } from "./useArcadeVehicle";
 import type { DrivingInput } from "./useDrivingInput";
@@ -241,10 +237,6 @@ function publishRuntimeState({
 
   handles.lastPublishedState.current = runtimeState;
   onStateChange(runtimeState);
-
-  if (import.meta.env.DEV) {
-    publishDynoRuntimeTestState(runtimeState);
-  }
 }
 
 export function DynoLab({
@@ -271,12 +263,6 @@ export function DynoLab({
   );
   const updatePullProgress = useCallback((nextProgress: number) => {
     sheetPullProgress.current = nextProgress;
-
-    if (import.meta.env.DEV) {
-      publishDossierRuntimeTestState({
-        pullProgress: Math.round(nextProgress * 100) / 100,
-      });
-    }
   }, []);
 
   useFrame((state, frameDelta) => {

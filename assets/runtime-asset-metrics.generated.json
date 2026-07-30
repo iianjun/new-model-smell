@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "validatorVersion": "2.0.0-dev.3.10",
+  "assets": [
+    {
+      "path": "public/assets/runtime/town/construction-barrier.glb",
+      "bytes": 6556,
+      "drawCalls": 1,
+      "vertices": 96,
+      "triangles": 60,
+      "warnings": 0,
+      "infos": 2,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    },
+    {
+      "path": "public/assets/runtime/town/construction-cone.glb",
+      "bytes": 7068,
+      "drawCalls": 1,
+      "vertices": 104,
+      "triangles": 66,
+      "warnings": 0,
+      "infos": 2,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    },
+    {
+      "path": "public/assets/runtime/town/roads/road-straight.glb",
+      "bytes": 5264,
+      "drawCalls": 1,
+      "vertices": 72,
+      "triangles": 44,
+      "warnings": 0,
+      "infos": 2,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    },
+    {
+      "path": "public/assets/runtime/town/suburban/building-type-a.glb",
+      "bytes": 98604,
+      "drawCalls": 1,
+      "vertices": 1870,
+      "triangles": 1174,
+      "warnings": 0,
+      "infos": 2,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    },
+    {
+      "path": "public/assets/runtime/town/suburban/building-type-b.glb",
+      "bytes": 146720,
+      "drawCalls": 1,
+      "vertices": 2798,
+      "triangles": 1748,
+      "warnings": 0,
+      "infos": 2,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    },
+    {
+      "path": "public/assets/runtime/town/suburban/tree-large.glb",
+      "bytes": 5812,
+      "drawCalls": 1,
+      "vertices": 80,
+      "triangles": 42,
+      "warnings": 0,
+      "infos": 2,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    },
+    {
+      "path": "public/assets/runtime/town/suburban/tree-small.glb",
+      "bytes": 5812,
+      "drawCalls": 1,
+      "vertices": 80,
+      "triangles": 42,
+      "warnings": 0,
+      "infos": 2,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    },
+    {
+      "path": "public/assets/runtime/town/vehicles/delivery-flat.glb",
+      "bytes": 214456,
+      "drawCalls": 5,
+      "vertices": 4004,
+      "triangles": 2574,
+      "warnings": 0,
+      "infos": 6,
+      "issueCodes": [
+        "UNUSED_MESH_TANGENT",
+        "URI_GLB"
+      ]
+    }
+  ]
+}

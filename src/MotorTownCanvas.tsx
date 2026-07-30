@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ActiveFlagship, FLAGSHIP_INITIAL_YAW } from "./ActiveFlagship";
 import { DynoLab } from "./DynoLab";
 import { type DossierController, getDossierPhaseBehavior } from "./dossier";
-import type { DrivingTelemetry } from "./driving";
+import { type DrivingTelemetry, PHYSICS_TIME_STEP } from "./driving";
 import { type DynoRuntimeState, INITIAL_DYNO_RUNTIME_STATE } from "./dyno";
 import {
   type ExperienceState,
@@ -27,12 +27,13 @@ import { MotorTownGraybox } from "./MotorTownGraybox";
 import { OpeningSequence } from "./OpeningSequence";
 import type { OpeningEntry, OpeningStage } from "./opening";
 import { RoadGuidance } from "./RoadGuidance";
-import { publishDossierRuntimeTestState } from "./runtimeTestState";
 import {
   getFlagshipDisplayWorldPosition,
   getShowroomDisplayPositions,
+  getValetBayWorldPosition,
 } from "./showroomLayout";
 import { useDrivingInput } from "./useDrivingInput";
+import { MOTOR_TOWN_PALETTE } from "./visualLanguage";
 
 type MotorTownCanvasProps = {
   activeFlagship: FlagshipModel | null;
@@ -66,11 +67,7 @@ function RuntimeReady({ onReady }: Pick<MotorTownCanvasProps, "onReady">) {
   return null;
 }
 
-function DossierRuntimeProbe({
-  activeFlagshipBody,
-}: {
-  activeFlagshipBody: React.RefObject<RapierRigidBody | null>;
-}) {
+function VisualFixtureCamera() {
   const camera = useThree((state) => state.camera);
 
   useFrame(() => {
@@ -78,24 +75,18 @@ function DossierRuntimeProbe({
       return;
     }
 
-    const position = activeFlagshipBody.current?.translation();
+    const fixture = window.__NEW_MODEL_MOTORS_TEST_FIXTURES__?.visualCamera;
 
-    if (!position) {
+    if (!fixture) {
       return;
     }
 
-    publishDossierRuntimeTestState({
-      activeFlagshipPosition: {
-        x: position.x,
-        y: position.y,
-        z: position.z,
-      },
-      cameraPosition: {
-        x: camera.position.x,
-        y: camera.position.y,
-        z: camera.position.z,
-      },
-    });
+    camera.position.set(
+      fixture.position.x,
+      fixture.position.y,
+      fixture.position.z,
+    );
+    camera.lookAt(fixture.target.x, fixture.target.y, fixture.target.z);
   });
 
   return null;
@@ -154,6 +145,8 @@ function MotorTownWorld({
   const displayPositions = getShowroomDisplayPositions(
     openAiFlagshipLineup.length,
   );
+  const navigationDisplayX =
+    displayPositions[Math.floor(displayPositions.length / 2)];
   const defaultActiveFlagshipPosition = getFlagshipDisplayWorldPosition(
     activeFlagshipIndex >= 0 ? displayPositions[activeFlagshipIndex] : 0,
   );
@@ -165,7 +158,11 @@ function MotorTownWorld({
   return (
     <>
       <ambientLight intensity={1.8} />
-      <hemisphereLight color="#f7f0df" groundColor="#718654" intensity={1.2} />
+      <hemisphereLight
+        color={MOTOR_TOWN_PALETTE.warmIvory}
+        groundColor={MOTOR_TOWN_PALETTE.fadedGreen}
+        intensity={1.2}
+      />
       <directionalLight
         castShadow
         intensity={2.65}
@@ -181,7 +178,11 @@ function MotorTownWorld({
       />
 
       <Suspense fallback={null}>
-        <Physics colliders={false} gravity={[0, -13, 0]}>
+        <Physics
+          colliders={false}
+          gravity={[0, -13, 0]}
+          timeStep={PHYSICS_TIME_STEP}
+        >
           <MotorTownGraybox
             activeFlagshipBody={activeFlagshipBody}
             inspectorCartBody={inspectorCartBody}
@@ -195,6 +196,9 @@ function MotorTownWorld({
             cameraEnabled={inspectorControlsEnabled}
             controlsEnabled={inspectorControlsEnabled}
             initialPosition={initialCartPosition}
+            navigationTargetPosition={getValetBayWorldPosition(
+              navigationDisplayX,
+            )}
             onTelemetry={onTelemetry}
             presentation={phaseBehavior.cartPresentation}
           />
@@ -241,7 +245,7 @@ function MotorTownWorld({
             }
           />
           <RoadGuidance visible={inspectorControlsEnabled} />
-          <DossierRuntimeProbe activeFlagshipBody={activeFlagshipBody} />
+          <VisualFixtureCamera />
           <RuntimeReady onReady={onReady} />
         </Physics>
       </Suspense>
@@ -263,7 +267,7 @@ export default function MotorTownCanvas(props: MotorTownCanvasProps) {
         antialias: true,
         powerPreference: "high-performance",
       }}
-      shadows
+      shadows="percentage"
     >
       <MotorTownWorld {...props} />
     </Canvas>
