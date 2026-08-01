@@ -29,10 +29,12 @@ third-party identity art.
   `Textures/colormap.png`
 - Modifications: the selected upstream GLBs are copied without binary edits.
   The road module's adjacent runtime color map is remapped without dithering to
-  the approved Motor Town palette. At runtime the module is scaled to the width
-  and length of each route; barriers and cones are scaled into closure groups;
-  and their standard materials are forced to flat shading, zero metalness, and
-  full roughness.
+  the approved Motor Town palette. At runtime a topology-aware road-network
+  module aligns the asset's long axis to each route, splits centerline
+  intersections, trims straight modules, and supplies explicitly layered
+  junction surfaces so textured modules never overlap on the same plane.
+  Barriers and cones are scaled into closure groups; all standard materials are
+  forced to flat shading, zero metalness, and full roughness.
 - Usage: the complete drivable road surface plus generic barriers and cones at
   the three deliberately blocked exits. Repeated modules clone only object
   nodes while sharing the loader's cached geometry and materials.
@@ -73,10 +75,11 @@ third-party identity art.
 - Runtime assets:
   `public/assets/runtime/town/vehicles/delivery-flat.glb` and its adjacent
   `Textures/colormap.png`
-- Modifications: the upstream GLB is copied without binary edits. Its adjacent
-  runtime color map is remapped without dithering to the approved Motor Town
-  palette, then the model is uniformly scaled, rotated, shadow-enabled, and
-  normalized to matte materials at runtime.
+- Modifications: fourteen duplicate coplanar faces are removed from the
+  editable OBJ and runtime GLB. The adjacent runtime color map is remapped
+  without dithering to the approved Motor Town palette, then the model is
+  uniformly scaled, rotated, shadow-enabled, and normalized to matte materials
+  at runtime.
 - Usage: one parked generic delivery vehicle outside the route. It is
   background dressing, not the identity-bearing Inspector Cart or Model
   Vehicle.

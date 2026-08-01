@@ -95,10 +95,10 @@
     },
     {
       "path": "public/assets/runtime/town/vehicles/delivery-flat.glb",
-      "bytes": 214456,
+      "bytes": 214228,
       "drawCalls": 5,
       "vertices": 4004,
-      "triangles": 2574,
+      "triangles": 2560,
       "warnings": 0,
       "infos": 6,
       "issueCodes": [

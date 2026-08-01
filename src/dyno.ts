@@ -6,6 +6,13 @@ export const DYNO_ALIGNMENT_POSITION = {
 
 export const DYNO_ALIGNMENT_YAW = 0;
 export const DYNO_APPROACH_RADIUS = 4.5;
+export const DYNO_DISPLAY_LAYOUT = {
+  canvasHeight: 512,
+  height: 1.42,
+  instructionLineY: [320, 390],
+  positionY: 3.16,
+  roofTopY: 2.62,
+} as const;
 const DYNO_NAVIGATION_FINAL_RADIUS = 1.75;
 const DYNO_NAVIGATION_ROUTE = [
   {
@@ -46,6 +53,12 @@ export const DYNO_RUN_SECONDS = 3.6;
 export const DYNO_SHEET_LENGTH = 5.8;
 export const DYNO_SHEET_PRINT_READY_LENGTH = DYNO_SHEET_LENGTH - 0.02;
 export const DYNO_SHEET_RETRACTED_LENGTH = 0.03;
+
+export function getDynoDisplayLineWorldY(canvasY: number) {
+  const { canvasHeight, height, positionY } = DYNO_DISPLAY_LAYOUT;
+
+  return positionY + height / 2 - (canvasY / canvasHeight) * height;
+}
 
 export type DynoRunPhase =
   | "approach"

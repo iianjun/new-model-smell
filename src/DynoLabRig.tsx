@@ -20,7 +20,11 @@ import {
   DYNO_SHEET_OPEN_THRESHOLD,
   DYNO_SHEET_PULL_DISTANCE_PX,
 } from "./dossier";
-import { DYNO_ALIGNMENT_POSITION, DYNO_SHEET_LENGTH } from "./dyno";
+import {
+  DYNO_ALIGNMENT_POSITION,
+  DYNO_DISPLAY_LAYOUT,
+  DYNO_SHEET_LENGTH,
+} from "./dyno";
 
 const CHARCOAL = "#252723";
 const FLOOR = "#c7b994";
@@ -455,8 +459,11 @@ export function DynoLabRig({
           </group>
         </group>
 
-        <mesh position={[0, 2.73, -2.3]} rotation={[-0.08, 0, 0]}>
-          <planeGeometry args={[4.4, 1.42]} />
+        <mesh
+          position={[0, DYNO_DISPLAY_LAYOUT.positionY, -2.3]}
+          rotation={[-0.08, 0, 0]}
+        >
+          <planeGeometry args={[4.4, DYNO_DISPLAY_LAYOUT.height]} />
           <meshStandardMaterial map={displayTexture} roughness={1} />
         </mesh>
 

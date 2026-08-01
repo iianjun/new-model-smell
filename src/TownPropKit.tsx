@@ -1,9 +1,20 @@
 import { useLoader } from "@react-three/fiber";
 import { useMemo } from "react";
-import { Mesh, MeshStandardMaterial, type Object3D } from "three";
+import {
+  Mesh,
+  MeshStandardMaterial,
+  type Object3D,
+  Shape,
+  ShapeGeometry,
+} from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { TOWN_RUNTIME_ASSETS } from "./assetCatalog";
-import { MOTOR_TOWN_SURFACE } from "./visualLanguage";
+import {
+  createTownRoadNetworkLayout,
+  type TownRoadJunction,
+  type TownRoadSegment,
+} from "./townRoadNetwork";
+import { MOTOR_TOWN_PALETTE, MOTOR_TOWN_SURFACE } from "./visualLanguage";
 
 type TownRuntimeAssetKey = keyof typeof TOWN_RUNTIME_ASSETS;
 type PreparedTownAssets = Record<TownRuntimeAssetKey, Object3D>;
@@ -37,12 +48,6 @@ export type TownBuildingKind = keyof typeof TOWN_BUILDING_KIT;
 export type TownBuildingTransform = PropTransform & {
   kind: TownBuildingKind;
   scale: number;
-};
-
-export type TownRoadSegment = {
-  end: readonly [x: number, z: number];
-  start: readonly [x: number, z: number];
-  width?: number;
 };
 
 export type TownTreeTransform = PropTransform & {
@@ -100,6 +105,76 @@ function SharedAssetInstance({
   );
 }
 
+function createHorizontalShapeGeometry(
+  vertices: TownRoadJunction["surfaceVertices"],
+) {
+  const shape = new Shape();
+
+  vertices.forEach(([x, z], index) => {
+    if (index === 0) {
+      shape.moveTo(x, -z);
+    } else {
+      shape.lineTo(x, -z);
+    }
+  });
+  shape.closePath();
+
+  const geometry = new ShapeGeometry(shape);
+  geometry.rotateX(-Math.PI / 2);
+
+  return geometry;
+}
+
+function RoadJunctionSurface({ junction }: { junction: TownRoadJunction }) {
+  const geometries = useMemo(
+    () => ({
+      curb: createHorizontalShapeGeometry(junction.curbVertices),
+      edge: createHorizontalShapeGeometry(junction.edgeVertices),
+      surface: createHorizontalShapeGeometry(junction.surfaceVertices),
+    }),
+    [junction],
+  );
+
+  return (
+    <group position={junction.position}>
+      {[
+        {
+          color: MOTOR_TOWN_PALETTE.warmIvory,
+          geometry: geometries.curb,
+          key: "curb",
+          y: 0,
+        },
+        {
+          color: MOTOR_TOWN_PALETTE.charcoal,
+          geometry: geometries.edge,
+          key: "edge",
+          y: 0.003,
+        },
+        {
+          color: MOTOR_TOWN_PALETTE.fadedGreen,
+          geometry: geometries.surface,
+          key: "surface",
+          y: 0.006,
+        },
+      ].map((layer) => (
+        <mesh
+          geometry={layer.geometry}
+          key={layer.key}
+          position={[0, layer.y, 0]}
+          receiveShadow
+        >
+          <meshStandardMaterial
+            color={layer.color}
+            flatShading
+            metalness={MOTOR_TOWN_SURFACE.enamelMetalness}
+            roughness={MOTOR_TOWN_SURFACE.matteRoughness}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export function TownPropKit({
   buildings,
   roadClosures,
@@ -127,29 +202,23 @@ export function TownPropKit({
       ) as PreparedTownAssets,
     [loadedAssets],
   );
+  const roadLayout = useMemo(() => createTownRoadNetworkLayout(roads), [roads]);
 
   return (
     <group name="kenney-town-kit">
       <group name="kenney-roads">
-        {roads.map(({ end, start, width = 4.1 }) => {
-          const deltaX = end[0] - start[0];
-          const deltaZ = end[1] - start[1];
-          const length = Math.hypot(deltaX, deltaZ);
-
-          return (
-            <SharedAssetInstance
-              key={`${start[0]}-${start[1]}-${end[0]}-${end[1]}`}
-              position={[
-                (start[0] + end[0]) / 2,
-                0.035,
-                (start[1] + end[1]) / 2,
-              ]}
-              rotation={Math.atan2(deltaX, deltaZ)}
-              scale={[width, 1, length]}
-              source={assets.roadStraight}
-            />
-          );
-        })}
+        {roadLayout.segments.map(({ key, position, rotation, scale }) => (
+          <SharedAssetInstance
+            key={key}
+            position={[...position]}
+            rotation={rotation}
+            scale={[...scale]}
+            source={assets.roadStraight}
+          />
+        ))}
+        {roadLayout.junctions.map((junction) => (
+          <RoadJunctionSurface junction={junction} key={junction.key} />
+        ))}
       </group>
 
       <group name="kenney-road-closures">

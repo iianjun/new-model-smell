@@ -26,7 +26,7 @@ type NavigationReading = {
 const FLAGSHIP_DRIVE_OUT: readonly InputEvent[] = [
   { atMilliseconds: 100, pressedKeys: ["w"] },
   { atMilliseconds: 1_250, pressedKeys: ["s"] },
-  { atMilliseconds: 1_650 },
+  { atMilliseconds: 1_430 },
   { atMilliseconds: 1_850 },
 ];
 
@@ -192,7 +192,7 @@ async function driveByVisibleNavigation(
         reading.direction === "right" ? ["a", "s"] : ["d", "s"];
       const recovery: readonly InputEvent[] = [
         { atMilliseconds: 100, pressedKeys: reverseSteer },
-        { atMilliseconds: 750 },
+        { atMilliseconds: 500 },
         { atMilliseconds: 850, handbrake: true },
         { atMilliseconds: 1_100 },
       ];
@@ -232,13 +232,13 @@ async function driveByVisibleNavigation(
               { atMilliseconds: 100, pressedKeys },
               { atMilliseconds: 250 },
               { atMilliseconds: 350, pressedKeys: ["s"] },
-              { atMilliseconds: 470 },
+              { atMilliseconds: 410 },
               { atMilliseconds: 970 },
             ]
           : reading.direction !== "ahead" && reading.distanceMeters <= 6
             ? [
                 { atMilliseconds: 100, pressedKeys: reverseSteer },
-                { atMilliseconds: 700 },
+                { atMilliseconds: 370 },
                 { atMilliseconds: 1_200 },
               ]
             : [

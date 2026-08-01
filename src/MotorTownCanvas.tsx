@@ -244,9 +244,6 @@ function MotorTownWorld({
             onStage={onOpeningStage}
             skipRequested={skipRequested}
             trackedCompanies={trackedCompanies}
-            trackedVehicleBody={
-              flagshipPresent ? activeFlagshipBody : inspectorCartBody
-            }
           />
           <RoadGuidance visible={inspectorControlsEnabled} />
           <VisualFixtureCamera />

@@ -38,7 +38,7 @@ export const INSPECTOR_CART_TUNING = {
   lateralGrip: 8.5,
   minimumSteeringAuthority: 0.28,
   recoveryDelayMs: 900,
-  reverseSpeed: 3.25,
+  reverseSpeed: 5.4,
   steeringRate: 1.75,
   steeringSpeedDivisor: 2.4,
 } as const satisfies ArcadeVehicleTuning;
@@ -53,7 +53,7 @@ export const FLAGSHIP_TUNING = {
   lateralGrip: 4.4,
   minimumSteeringAuthority: 0.18,
   recoveryDelayMs: 1_150,
-  reverseSpeed: 4.1,
+  reverseSpeed: 9.2,
   steeringRate: 0.92,
   steeringSpeedDivisor: 4.6,
 } as const satisfies ArcadeVehicleTuning;
